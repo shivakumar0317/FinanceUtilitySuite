@@ -1,0 +1,9 @@
+customtkinter
+pandas
+openpyxl
+yfinance
+requests
+pillow
+matplotlib
+pyinstaller
+tqdm
