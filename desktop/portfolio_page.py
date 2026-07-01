@@ -113,6 +113,10 @@ class PortfolioPage(ctk.CTkFrame):
                 f"₹{summary['profit']:,.2f}"
             )
 
+            self.pnl.set_subtitle(
+                f"{summary['return_percent']}%"
+            )
+
             self.holdings.set_value(
                 summary["holdings"]
             )
