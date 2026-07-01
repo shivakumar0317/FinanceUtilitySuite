@@ -8,7 +8,6 @@ class Sidebar(ctk.CTkFrame):
         super().__init__(master, width=220, corner_radius=0)
 
         self.callback = callback
-
         self.pack_propagate(False)
 
         self.create_widgets()
@@ -24,35 +23,24 @@ class Sidebar(ctk.CTkFrame):
         title.pack(pady=(30, 25))
 
         menu = [
-
             ("🏠 Dashboard", "dashboard"),
-
+            ("📊 Analytics", "analytics"),
             ("📈 Stock Analyzer", "stocks"),
-
             ("💼 Portfolio", "portfolio"),
-
             ("🏦 MTF Analyzer", "mtf"),
-
             ("💰 Loan Calculator", "loan"),
-
-            ("📊 Reports", "reports"),
-
-            ("⚙ Settings", "settings")
-
+            ("📄 Reports", "reports"),
+            ("⚙ Settings", "settings"),
         ]
 
         for text, page in menu:
 
             btn = ctk.CTkButton(
-
                 self,
-
                 text=text,
-
                 width=180,
-
+                anchor="w",
                 command=lambda p=page: self.callback(p)
-
             )
 
-            btn.pack(pady=8)
+            btn.pack(pady=8, padx=20)

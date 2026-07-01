@@ -1,5 +1,6 @@
 import customtkinter as ctk
 
+from desktop.analytics_page import AnalyticsPage
 from desktop.dashboard_page import DashboardPage
 from desktop.sidebar import Sidebar
 from desktop.stock_page import StockPage
@@ -8,7 +9,6 @@ from desktop.stock_page import StockPage
 class Dashboard(ctk.CTk):
 
     def __init__(self):
-
         super().__init__()
 
         self.title("Finance Utility Suite")
@@ -18,9 +18,6 @@ class Dashboard(ctk.CTk):
 
     def create_layout(self):
 
-        # -----------------------------
-        # Sidebar
-        # -----------------------------
         self.sidebar = Sidebar(
             self,
             self.change_page
@@ -31,9 +28,6 @@ class Dashboard(ctk.CTk):
             fill="y"
         )
 
-        # -----------------------------
-        # Main Area
-        # -----------------------------
         self.main = ctk.CTkFrame(self)
 
         self.main.pack(
@@ -42,35 +36,53 @@ class Dashboard(ctk.CTk):
             expand=True
         )
 
-        # -----------------------------
-        # Default Page
-        # -----------------------------
+        self.show_dashboard()
+
+    def clear_main(self):
+
+        for widget in self.main.winfo_children():
+            widget.destroy()
+
+    def show_dashboard(self):
+
+        self.clear_main()
+
         DashboardPage(self.main).pack(
+            fill="both",
+            expand=True
+        )
+
+    def show_analytics(self):
+
+        self.clear_main()
+
+        AnalyticsPage(self.main).pack(
+            fill="both",
+            expand=True
+        )
+
+    def show_stocks(self):
+
+        self.clear_main()
+
+        StockPage(self.main).pack(
             fill="both",
             expand=True
         )
 
     def change_page(self, page):
 
-        # Remove current page
-        for widget in self.main.winfo_children():
-            widget.destroy()
-
         if page == "dashboard":
+            self.show_dashboard()
 
-            DashboardPage(self.main).pack(
-                fill="both",
-                expand=True
-            )
+        elif page == "analytics":
+            self.show_analytics()
 
         elif page == "stocks":
-
-            StockPage(self.main).pack(
-                fill="both",
-                expand=True
-            )
+            self.show_stocks()
 
         else:
+            self.clear_main()
 
             label = ctk.CTkLabel(
                 self.main,
@@ -79,15 +91,3 @@ class Dashboard(ctk.CTk):
             )
 
             label.pack(pady=30)
-
-    def load_dashboard(self):
-
-     stats = self.dashboard.get_statistics()
-
-     self.total.set_value(stats["stocks"])
-
-     self.report.set_value(stats["reports"])
-
-     self.beta.set_value(stats["avg_beta"])
-
-     self.risk.set_value(stats["high_risk"])
