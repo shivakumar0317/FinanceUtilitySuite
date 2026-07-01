@@ -4,6 +4,8 @@ from tkinter import filedialog, messagebox
 from desktop.widgets.dashboard_card import DashboardCard
 from desktop.widgets.result_table import ResultTable
 from desktop.widgets.chart_widget import ChartWidget
+from desktop.widgets.mini_table import MiniTable
+from desktop.widgets.performance_widget import PerformanceWidget
 from core.services.portfolio_service import PortfolioService
 
 
@@ -11,13 +13,21 @@ class PortfolioPage(ctk.CTkFrame):
 
     def __init__(self, master):
         super().__init__(master)
+
         self.portfolio_df = None
+
         self.build_ui()
 
     def build_ui(self):
 
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(4, weight=1)
+        self.grid_rowconfigure(6, weight=1)
+
+        self.content = ctk.CTkScrollableFrame(self)
+        self.content.grid(row=0, column=0, sticky="nsew")
+
+        self.content.grid_columnconfigure(0, weight=1)
+        self.content.grid_rowconfigure(6, weight=1)
 
         title = ctk.CTkLabel(
             self,
@@ -55,18 +65,21 @@ class PortfolioPage(ctk.CTkFrame):
             value="₹0",
             subtitle="Total Invested"
         )
+
         self.current_value = DashboardCard(
             cards,
             title="Current Value",
             value="₹0",
             subtitle="Market Value"
         )
+
         self.pnl = DashboardCard(
             cards,
             title="Profit / Loss",
             value="₹0",
             subtitle="Return %"
         )
+
         self.holdings = DashboardCard(
             cards,
             title="Holdings",
@@ -91,8 +104,38 @@ class PortfolioPage(ctk.CTkFrame):
         self.pnl_chart = ChartWidget(charts_frame)
         self.pnl_chart.grid(row=0, column=1, sticky="nsew", padx=8, pady=8)
 
+        mini_tables_frame = ctk.CTkFrame(self)
+        mini_tables_frame.grid(row=4, column=0, sticky="ew", padx=20, pady=(0, 10))
+
+        mini_tables_frame.grid_columnconfigure(0, weight=1)
+        mini_tables_frame.grid_columnconfigure(1, weight=1)
+
+        self.top_gainers_table = MiniTable(
+            mini_tables_frame,
+            title="Top Gainers"
+        )
+        self.top_gainers_table.grid(row=0, column=0, sticky="nsew", padx=8, pady=8)
+
+        self.top_losers_table = MiniTable(
+            mini_tables_frame,
+            title="Top Losers"
+        )
+        self.top_losers_table.grid(row=0, column=1, sticky="nsew", padx=8, pady=8)
+
+        self.performance_widget = PerformanceWidget(
+            self,
+            title="Portfolio Performance"
+        )
+        self.performance_widget.grid(
+            row=5,
+            column=0,
+            sticky="ew",
+            padx=20,
+            pady=(0, 10)
+        )
+
         table_frame = ctk.CTkFrame(self)
-        table_frame.grid(row=4, column=0, sticky="nsew", padx=20, pady=(0, 20))
+        table_frame.grid(row=6, column=0, sticky="nsew", padx=20, pady=(0, 20))
 
         table_frame.grid_rowconfigure(0, weight=1)
         table_frame.grid_columnconfigure(0, weight=1)
@@ -123,6 +166,8 @@ class PortfolioPage(ctk.CTkFrame):
             self.table.load_dataframe(dataframe)
             self.update_cards(summary)
             self.update_charts(dataframe)
+            self.update_mini_tables(dataframe)
+            self.update_performance(dataframe)
 
             self.status_label.configure(text="Portfolio loaded successfully")
 
@@ -132,25 +177,11 @@ class PortfolioPage(ctk.CTkFrame):
 
     def update_cards(self, summary):
 
-        self.total_investment.set_value(
-            f"₹{summary['investment']:,.2f}"
-        )
-
-        self.current_value.set_value(
-            f"₹{summary['current_value']:,.2f}"
-        )
-
-        self.pnl.set_value(
-            f"₹{summary['profit']:,.2f}"
-        )
-
-        self.pnl.set_subtitle(
-            f"{summary.get('return_percent', 0)}%"
-        )
-
-        self.holdings.set_value(
-            summary["holdings"]
-        )
+        self.total_investment.set_value(f"₹{summary['investment']:,.2f}")
+        self.current_value.set_value(f"₹{summary['current_value']:,.2f}")
+        self.pnl.set_value(f"₹{summary['profit']:,.2f}")
+        self.pnl.set_subtitle(f"{summary.get('return_percent', 0)}%")
+        self.holdings.set_value(summary["holdings"])
 
     def update_charts(self, dataframe):
 
@@ -180,3 +211,85 @@ class PortfolioPage(ctk.CTkFrame):
             xlabel="Symbol",
             ylabel="Profit"
         )
+
+    def update_mini_tables(self, dataframe):
+
+        if dataframe is None or dataframe.empty:
+            return
+
+        required_columns = ["Symbol", "Current Price", "Return %"]
+
+        for column in required_columns:
+            if column not in dataframe.columns:
+                return
+
+        gainers_df = dataframe.sort_values(
+            by="Return %",
+            ascending=False
+        ).head(5)
+
+        losers_df = dataframe.sort_values(
+            by="Return %",
+            ascending=True
+        ).head(5)
+
+        gainers = []
+
+        for _, row in gainers_df.iterrows():
+            gainers.append(
+                (
+                    row["Symbol"],
+                    row["Current Price"],
+                    row["Return %"]
+                )
+            )
+
+        losers = []
+
+        for _, row in losers_df.iterrows():
+            losers.append(
+                (
+                    row["Symbol"],
+                    row["Current Price"],
+                    row["Return %"]
+                )
+            )
+
+        self.top_gainers_table.load_data(gainers)
+        self.top_losers_table.load_data(losers)
+
+    def update_performance(self, dataframe):
+
+        if dataframe is None or dataframe.empty:
+            return
+
+        required_columns = ["Symbol", "Return %", "Profit"]
+
+        for column in required_columns:
+            if column not in dataframe.columns:
+                return
+
+        best_row = dataframe.loc[dataframe["Return %"].idxmax()]
+        worst_row = dataframe.loc[dataframe["Return %"].idxmin()]
+
+        average_return = dataframe["Return %"].mean()
+        winning_stocks = dataframe[dataframe["Return %"] > 0].shape[0]
+        losing_stocks = dataframe[dataframe["Return %"] < 0].shape[0]
+        total_profit = dataframe["Profit"].sum()
+
+        metrics = {
+            "Best Performer": (
+                f"{best_row['Symbol']} "
+                f"({best_row['Return %']:.2f}%)"
+            ),
+            "Worst Performer": (
+                f"{worst_row['Symbol']} "
+                f"({worst_row['Return %']:.2f}%)"
+            ),
+            "Average Return": f"{average_return:.2f}%",
+            "Winning Stocks": winning_stocks,
+            "Losing Stocks": losing_stocks,
+            "Total Profit": f"₹{total_profit:,.2f}"
+        }
+
+        self.performance_widget.update_metrics(metrics)
