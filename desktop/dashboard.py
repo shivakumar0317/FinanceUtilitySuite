@@ -4,6 +4,7 @@ from desktop.analytics_page import AnalyticsPage
 from desktop.dashboard_page import DashboardPage
 from desktop.sidebar import Sidebar
 from desktop.stock_page import StockPage
+from desktop.portfolio_page import PortfolioPage
 
 
 class Dashboard(ctk.CTk):
@@ -80,6 +81,14 @@ class Dashboard(ctk.CTk):
 
         elif page == "stocks":
             self.show_stocks()
+
+        elif page == "portfolio":
+            self.clear_main()
+
+            PortfolioPage(self.main).pack(
+             fill="both",
+             expand=True
+    )    
 
         else:
             self.clear_main()
