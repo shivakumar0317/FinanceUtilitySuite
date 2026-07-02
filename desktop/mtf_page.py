@@ -11,11 +11,12 @@ import customtkinter as ctk
 import pandas as pd
 
 from core.services.mtf_service import MTFService
+from desktop.widgets.activity_log import ActivityLog
 from desktop.widgets.chart_widget import ChartWidget
 from desktop.widgets.dashboard_card import DashboardCard
 from desktop.widgets.mini_table import MiniTable
+from desktop.widgets.progress_widget import ProgressWidget
 from desktop.widgets.result_table import ResultTable
-
 
 
 class MTFPage(ctk.CTkFrame):
@@ -25,14 +26,14 @@ class MTFPage(ctk.CTkFrame):
         super().__init__(master)
 
         self.dataframe: pd.DataFrame | None = None
-
         self._build_ui()
 
     def _build_ui(self) -> None:
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(3, weight=1)
+        self.grid_rowconfigure(4, weight=1)
 
         self._build_header()
+        self._build_progress()
         self._build_cards()
         self._build_analytics_area()
         self._build_result_table()
@@ -65,25 +66,24 @@ class MTFPage(ctk.CTkFrame):
         )
         import_button.grid(row=0, column=2, sticky="e")
 
+    def _build_progress(self) -> None:
+        self.progress = ProgressWidget(
+            self,
+            title="Import Progress",
+        )
+        self.progress.grid(row=1, column=0, sticky="ew", padx=20, pady=(0, 10))
+
     def _build_cards(self) -> None:
         cards_frame = ctk.CTkFrame(self, fg_color="transparent")
-        cards_frame.grid(row=1, column=0, sticky="ew", padx=20, pady=10)
+        cards_frame.grid(row=2, column=0, sticky="ew", padx=20, pady=10)
 
         for column in range(4):
             cards_frame.grid_columnconfigure(column, weight=1)
 
-        self.clients_card = DashboardCard(
-            cards_frame,
-            title="Clients",
-            value="0",
-        )
+        self.clients_card = DashboardCard(cards_frame, title="Clients", value="0")
         self.clients_card.grid(row=0, column=0, sticky="ew", padx=(0, 10))
 
-        self.positions_card = DashboardCard(
-            cards_frame,
-            title="Positions",
-            value="0",
-        )
+        self.positions_card = DashboardCard(cards_frame, title="Positions", value="0")
         self.positions_card.grid(row=0, column=1, sticky="ew", padx=10)
 
         self.buy_value_card = DashboardCard(
@@ -102,12 +102,10 @@ class MTFPage(ctk.CTkFrame):
 
     def _build_analytics_area(self) -> None:
         analytics_frame = ctk.CTkFrame(self, fg_color="transparent")
-        analytics_frame.grid(row=2, column=0, sticky="ew", padx=20, pady=10)
+        analytics_frame.grid(row=3, column=0, sticky="ew", padx=20, pady=10)
 
         analytics_frame.grid_columnconfigure(0, weight=2)
         analytics_frame.grid_columnconfigure(1, weight=1)
-        analytics_frame.grid_rowconfigure(0, weight=1)
-        analytics_frame.grid_rowconfigure(1, weight=1)
 
         self.exposure_chart = ChartWidget(
             analytics_frame,
@@ -116,9 +114,9 @@ class MTFPage(ctk.CTkFrame):
         self.exposure_chart.grid(
             row=0,
             column=0,
-            rowspan=2,
             sticky="nsew",
             padx=(0, 10),
+            pady=(0, 10),
         )
 
         self.top_exposure_table = MiniTable(
@@ -131,6 +129,18 @@ class MTFPage(ctk.CTkFrame):
             sticky="nsew",
             padx=(10, 0),
             pady=(0, 10),
+        )
+
+        self.activity_log = ActivityLog(
+            analytics_frame,
+            height=150,
+        )
+        self.activity_log.grid(
+            row=1,
+            column=0,
+            sticky="nsew",
+            padx=(0, 10),
+            pady=(10, 0),
         )
 
         self.gainers_table = MiniTable(
@@ -147,7 +157,7 @@ class MTFPage(ctk.CTkFrame):
 
     def _build_result_table(self) -> None:
         table_frame = ctk.CTkFrame(self)
-        table_frame.grid(row=3, column=0, sticky="nsew", padx=20, pady=(10, 20))
+        table_frame.grid(row=4, column=0, sticky="nsew", padx=20, pady=(10, 20))
         table_frame.grid_columnconfigure(0, weight=1)
         table_frame.grid_rowconfigure(1, weight=1)
 
@@ -175,36 +185,49 @@ class MTFPage(ctk.CTkFrame):
             return
 
         try:
+            self.progress.reset()
+            self.activity_log.clear()
+
             self.status_label.configure(text="Importing file...")
+            self.activity_log.success("Loading MTF file...")
+            self.progress.update_progress(0.20, "Loading file")
 
             dataframe = MTFService.load(file_path)
+
+            self.activity_log.success("Validating columns...")
+            self.progress.update_progress(0.40, "Validating file")
             MTFService.validate_dataframe(dataframe)
 
             self.dataframe = dataframe
 
+            self.activity_log.success("Updating dashboard...")
+            self.progress.update_progress(0.60, "Updating dashboard")
             self._refresh_dashboard(dataframe)
+
+            self.activity_log.success("Updating charts and tables...")
+            self.progress.update_progress(0.80, "Updating analytics")
             self._refresh_chart(dataframe)
             self._refresh_top_exposure_table(dataframe)
             self._refresh_gainers_table(dataframe)
+
+            self.activity_log.success("Loading full MTF data...")
             self._refresh_result_table(dataframe)
 
+            self.activity_log.success("Import completed")
+            self.progress.complete("Ready")
             self.status_label.configure(text="MTF file imported successfully")
 
         except Exception as error:
             self.status_label.configure(text="Import failed")
+            self.progress.update_progress(0, "Import failed")
+            self.activity_log.error(str(error))
             messagebox.showerror("MTF Import Error", str(error))
 
     def _refresh_dashboard(self, dataframe: pd.DataFrame) -> None:
         summary = MTFService.calculate_summary(dataframe)
 
-        self._update_card(
-            self.clients_card,
-            str(summary.get("clients", 0)),
-        )
-        self._update_card(
-            self.positions_card,
-            str(summary.get("positions", 0)),
-        )
+        self._update_card(self.clients_card, str(summary.get("clients", 0)))
+        self._update_card(self.positions_card, str(summary.get("positions", 0)))
         self._update_card(
             self.buy_value_card,
             self._format_currency(summary.get("buy_value", 0)),
@@ -240,6 +263,7 @@ class MTFPage(ctk.CTkFrame):
 
     def _refresh_top_exposure_table(self, dataframe: pd.DataFrame) -> None:
         table_data = MTFService.top_exposure(dataframe)
+
         self._load_mini_table(
             table=self.top_exposure_table,
             dataframe=table_data,
@@ -248,6 +272,7 @@ class MTFPage(ctk.CTkFrame):
 
     def _refresh_gainers_table(self, dataframe: pd.DataFrame) -> None:
         table_data = MTFService.top_mtm_gainers(dataframe)
+
         self._load_mini_table(
             table=self.gainers_table,
             dataframe=table_data,
