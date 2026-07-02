@@ -2,100 +2,157 @@
 Finance Utility Suite
 Performance Widget
 
-Displays portfolio performance statistics in a
-professional dashboard panel.
+Reusable metrics panel for portfolio, MTF, risk dashboard
+and analytics performance summaries.
+
+Author : Shiva Kumar
+Version: 0.95
 """
 
 from __future__ import annotations
 
 import customtkinter as ctk
 
+from desktop.theme import Theme
+
 
 class PerformanceWidget(ctk.CTkFrame):
-    """
-    Reusable performance summary widget.
+    """Reusable performance summary widget."""
 
-    Example
-    -------
-    widget.update_metrics({
-        "Best Performer": "TCS (+18.52%)",
-        "Worst Performer": "ITC (-5.42%)",
-        "Average Return": "8.32%",
-        "Winning Stocks": "18",
-        "Losing Stocks": "6",
-        "Total Profit": "₹42,650"
-    })
-    """
+    DEFAULT_METRICS = [
+        "Best Performer",
+        "Worst Performer",
+        "Average Return",
+        "Winning Stocks",
+        "Losing Stocks",
+        "Total Profit",
+    ]
 
-    def __init__(self, master, title="Portfolio Performance"):
+    STATUS_MAP = {
+        "Best Performer": "success",
+        "Worst Performer": "error",
+        "Average Return": "info",
+        "Winning Stocks": "success",
+        "Losing Stocks": "error",
+        "Total Profit": "success",
+    }
 
-        super().__init__(master)
+    STATUS_COLORS = {
+        "default": Theme.TEXT_SECONDARY,
+        "success": Theme.SUCCESS,
+        "warning": Theme.WARNING,
+        "error": Theme.ERROR,
+        "info": Theme.INFO,
+    }
 
-        self.metric_labels = {}
+    def __init__(
+        self,
+        master,
+        title: str = "Portfolio Performance",
+        metrics: list[str] | None = None,
+    ):
+        super().__init__(master, corner_radius=Theme.BORDER_RADIUS)
+
+        self.title = title
+        self.metrics = metrics or self.DEFAULT_METRICS
+        self.metric_labels: dict[str, ctk.CTkLabel] = {}
+
+        self._build_ui()
+
+    def _build_ui(self) -> None:
+        """Build performance widget UI."""
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
 
-        # -------------------------------------------------
-        # Title
-        # -------------------------------------------------
-
-        title_label = ctk.CTkLabel(self, text=title, font=("Segoe UI", 16, "bold"))
-
+        title_label = ctk.CTkLabel(
+            self,
+            text=self.title,
+            font=Theme.FONT_SUBHEADING,
+            anchor="w",
+        )
         title_label.grid(
-            row=0, column=0, columnspan=2, sticky="w", padx=15, pady=(12, 18)
+            row=0,
+            column=0,
+            columnspan=2,
+            sticky="w",
+            padx=Theme.CARD_PADDING + 8,
+            pady=(Theme.CARD_PADDING + 8, 12),
         )
 
-        metrics = [
-            "Best Performer",
-            "Worst Performer",
-            "Average Return",
-            "Winning Stocks",
-            "Losing Stocks",
-            "Total Profit",
-        ]
+        for index, metric in enumerate(self.metrics, start=1):
+            self._create_metric_row(index, metric)
 
-        for row, metric in enumerate(metrics, start=1):
+    def _create_metric_row(self, row: int, metric: str) -> None:
+        """Create one metric/value row."""
 
-            name = ctk.CTkLabel(self, text=metric, anchor="w", font=("Segoe UI", 12))
+        name_label = ctk.CTkLabel(
+            self,
+            text=metric,
+            anchor="w",
+            font=Theme.FONT_NORMAL,
+            text_color=Theme.TEXT_SECONDARY,
+        )
+        name_label.grid(
+            row=row,
+            column=0,
+            sticky="w",
+            padx=Theme.CARD_PADDING + 12,
+            pady=6,
+        )
 
-            name.grid(row=row, column=0, sticky="w", padx=20, pady=6)
+        value_label = ctk.CTkLabel(
+            self,
+            text="-",
+            anchor="e",
+            font=Theme.FONT_NORMAL,
+        )
+        value_label.grid(
+            row=row,
+            column=1,
+            sticky="e",
+            padx=Theme.CARD_PADDING + 12,
+            pady=6,
+        )
 
-            value = ctk.CTkLabel(
-                self, text="-", anchor="e", font=("Segoe UI", 12, "bold")
-            )
-
-            value.grid(row=row, column=1, sticky="e", padx=20, pady=6)
-
-            self.metric_labels[metric] = value
+        self.metric_labels[metric] = value_label
 
     # -----------------------------------------------------
     # Public API
     # -----------------------------------------------------
 
-    def update_metrics(self, metrics: dict):
-        """
-        Update displayed metrics.
-
-        Parameters
-        ----------
-        metrics : dict
-
-        Example
-        -------
-        {
-            "Best Performer": "TCS (+12%)",
-            "Worst Performer": "ITC (-4%)"
-        }
-        """
+    def update_metrics(self, metrics: dict) -> None:
+        """Update displayed metrics."""
 
         for key, value in metrics.items():
+            if key not in self.metric_labels:
+                continue
 
-            if key in self.metric_labels:
-                self.metric_labels[key].configure(text=str(value))
+            label = self.metric_labels[key]
+            label.configure(text=str(value))
 
-    def clear(self):
-        """Reset all values."""
+            status = self.STATUS_MAP.get(key, "default")
+            color = self.STATUS_COLORS.get(status, Theme.TEXT_SECONDARY)
+            label.configure(text_color=color)
+
+    def set_metric(self, metric: str, value: str, status: str = "default") -> None:
+        """Update a single metric value."""
+
+        if metric not in self.metric_labels:
+            return
+
+        color = self.STATUS_COLORS.get(status, Theme.TEXT_SECONDARY)
+
+        self.metric_labels[metric].configure(
+            text=str(value),
+            text_color=color,
+        )
+
+    def clear(self) -> None:
+        """Reset all metrics."""
 
         for label in self.metric_labels.values():
-            label.configure(text="-")
+            label.configure(
+                text="-",
+                text_color=Theme.TEXT_SECONDARY,
+            )

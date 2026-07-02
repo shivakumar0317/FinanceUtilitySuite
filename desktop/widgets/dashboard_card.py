@@ -1,101 +1,154 @@
 """
 Finance Utility Suite
 Dashboard Card Widget
+
+Reusable summary card used across dashboards, analytics,
+portfolio, MTF and risk modules.
+
+Author : Shiva Kumar
+Version: 0.95
 """
 
 from __future__ import annotations
 
 import customtkinter as ctk
 
+from desktop.theme import Theme
+
 
 class DashboardCard(ctk.CTkFrame):
-    """
-    Reusable dashboard statistic card.
+    """Reusable dashboard summary card."""
 
-    Parameters
-    ----------
-    title : str
-        Card title.
-
-    value : str
-        Main value.
-
-    subtitle : str
-        Small information below value.
-    """
+    STATUS_COLORS = {
+        "default": Theme.TEXT_SECONDARY,
+        "success": Theme.SUCCESS,
+        "warning": Theme.WARNING,
+        "error": Theme.ERROR,
+        "info": Theme.INFO,
+    }
 
     def __init__(
         self,
         master,
-        title="Title",
-        value="0",
-        subtitle="",
-        width=250,
-        height=140,
-        **kwargs,
+        title: str,
+        value: str | int | float = "-",
+        subtitle: str = "",
+        icon: str = "",
+        status: str = "default",
     ):
-        super().__init__(master, width=width, height=height, corner_radius=12, **kwargs)
+        super().__init__(master, corner_radius=Theme.BORDER_RADIUS)
 
-        self.grid_propagate(False)
+        self.title_text = title
+        self.value_text = str(value)
+        self.subtitle_text = subtitle
+        self.icon_text = icon
+        self.status = status
 
-        self.title = title
-        self.value = value
-        self.subtitle = subtitle
-
-        self._build_ui()
-
-    # --------------------------------------------------
-    # UI
-    # --------------------------------------------------
-
-    def _build_ui(self):
-
-        self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
-        # Title
+        self._build_ui()
+        self.set_status(status)
+
+    def _build_ui(self) -> None:
+        """Build card UI."""
+
+        header_text = self.title_text
+
+        if self.icon_text:
+            header_text = f"{self.icon_text} {self.title_text}"
 
         self.title_label = ctk.CTkLabel(
-            self, text=self.title, font=("Segoe UI", 15, "bold"), anchor="w"
+            self,
+            text=header_text,
+            font=Theme.FONT_SUBHEADING,
+            anchor="w",
         )
-
-        self.title_label.grid(row=0, column=0, sticky="ew", padx=20, pady=(15, 5))
-
-        # Value
+        self.title_label.grid(
+            row=0,
+            column=0,
+            sticky="ew",
+            padx=Theme.CARD_PADDING + 6,
+            pady=(Theme.CARD_PADDING + 6, 4),
+        )
 
         self.value_label = ctk.CTkLabel(
-            self, text=self.value, font=("Segoe UI", 28, "bold"), anchor="w"
+            self,
+            text=self.value_text,
+            font=Theme.FONT_HEADING,
+            anchor="w",
         )
-
-        self.value_label.grid(row=1, column=0, sticky="sw", padx=20)
-
-        # Subtitle
+        self.value_label.grid(
+            row=1,
+            column=0,
+            sticky="ew",
+            padx=Theme.CARD_PADDING + 6,
+            pady=(6, 4),
+        )
 
         self.subtitle_label = ctk.CTkLabel(
             self,
-            text=self.subtitle,
-            font=("Segoe UI", 12),
-            text_color="gray70",
+            text=self.subtitle_text,
+            font=Theme.FONT_SMALL,
+            text_color=Theme.TEXT_SECONDARY,
             anchor="w",
         )
+        self.subtitle_label.grid(
+            row=2,
+            column=0,
+            sticky="ew",
+            padx=Theme.CARD_PADDING + 6,
+            pady=(0, Theme.CARD_PADDING + 6),
+        )
 
-        self.subtitle_label.grid(row=2, column=0, sticky="ew", padx=20, pady=(5, 15))
+    def set_value(self, value: str | int | float) -> None:
+        """Update card value."""
 
-    # --------------------------------------------------
-    # Update Methods
-    # --------------------------------------------------
+        self.value_text = str(value)
+        self.value_label.configure(text=self.value_text)
 
-    def set_title(self, text: str):
+    def set_subtitle(self, subtitle: str) -> None:
+        """Update card subtitle."""
 
-        self.title = text
-        self.title_label.configure(text=text)
+        self.subtitle_text = subtitle
+        self.subtitle_label.configure(text=self.subtitle_text)
 
-    def set_value(self, value):
+    def set_title(self, title: str) -> None:
+        """Update card title."""
 
-        self.value = value
-        self.value_label.configure(text=str(value))
+        self.title_text = title
+        self._refresh_title()
 
-    def set_subtitle(self, text):
+    def set_icon(self, icon: str) -> None:
+        """Update card icon."""
 
-        self.subtitle = text
-        self.subtitle_label.configure(text=text)
+        self.icon_text = icon
+        self._refresh_title()
+
+    def set_status(self, status: str = "default") -> None:
+        """Update subtitle/status color."""
+
+        self.status = status
+
+        color = self.STATUS_COLORS.get(
+            status,
+            self.STATUS_COLORS["default"],
+        )
+
+        self.subtitle_label.configure(text_color=color)
+
+    def clear(self) -> None:
+        """Reset card value and subtitle."""
+
+        self.set_value("-")
+        self.set_subtitle("")
+        self.set_status("default")
+
+    def _refresh_title(self) -> None:
+        """Refresh title label with optional icon."""
+
+        title = self.title_text
+
+        if self.icon_text:
+            title = f"{self.icon_text} {self.title_text}"
+
+        self.title_label.configure(text=title)
