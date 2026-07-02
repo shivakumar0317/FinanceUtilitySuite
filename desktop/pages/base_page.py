@@ -2,7 +2,8 @@
 Finance Utility Suite
 Base Page
 
-Every application page inherits from this class.
+Reusable base class for all desktop pages.
+Provides a scrollable content area and common layout helpers.
 """
 
 from __future__ import annotations
@@ -12,48 +13,124 @@ import customtkinter as ctk
 
 class BasePage(ctk.CTkFrame):
     """
-    Base class for all application pages.
+    Base class for application pages.
 
-    Child pages should override:
-        build_ui()
-        load_data()
-
-    The refresh() method already works for every page.
+    Features:
+        - Scrollable content area
+        - Standard padding
+        - Responsive grid layout
+        - Common page header helper
     """
 
-    def __init__(self, master, **kwargs):
-        super().__init__(master, **kwargs)
+    PAGE_PAD_X = 20
+    PAGE_PAD_Y = 20
+    SECTION_PAD_Y = 10
 
-        self._configure_grid()
+    def __init__(self, master):
+        super().__init__(master)
 
-        self.build_ui()
+        self.content = None
 
-    # --------------------------------------------------
-    # Layout
-    # --------------------------------------------------
+        self._build_base_layout()
 
-    def _configure_grid(self):
+    def _build_base_layout(self):
+        """Create the scrollable page container."""
 
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
-    # --------------------------------------------------
-    # Methods to Override
-    # --------------------------------------------------
+        self.content = ctk.CTkScrollableFrame(self)
+        self.content.grid(
+            row=0,
+            column=0,
+            sticky="nsew"
+        )
 
-    def build_ui(self):
-        """Create all widgets."""
-        pass
+        self.content.grid_columnconfigure(0, weight=1)
 
-    def load_data(self):
-        """Load page data."""
-        pass
+    def add_header(self, title: str, subtitle: str | None = None):
+        """
+        Add a standard page header.
 
-    # --------------------------------------------------
-    # Public API
-    # --------------------------------------------------
+        Parameters
+        ----------
+        title : str
+            Main page title.
 
-    def refresh(self):
-        """Refresh page contents."""
+        subtitle : str | None
+            Optional subtitle text.
+        """
 
-        self.load_data()
+        header = ctk.CTkFrame(
+            self.content,
+            fg_color="transparent"
+        )
+
+        header.grid(
+            row=0,
+            column=0,
+            sticky="ew",
+            padx=self.PAGE_PAD_X,
+            pady=(self.PAGE_PAD_Y, 10)
+        )
+
+        header.grid_columnconfigure(0, weight=1)
+
+        title_label = ctk.CTkLabel(
+            header,
+            text=title,
+            font=("Segoe UI", 28, "bold"),
+            anchor="w"
+        )
+
+        title_label.grid(
+            row=0,
+            column=0,
+            sticky="w"
+        )
+
+        if subtitle:
+            subtitle_label = ctk.CTkLabel(
+                header,
+                text=subtitle,
+                font=("Segoe UI", 13),
+                anchor="w",
+                text_color="gray"
+            )
+
+            subtitle_label.grid(
+                row=1,
+                column=0,
+                sticky="w",
+                pady=(4, 0)
+            )
+
+        return header
+
+    def create_section(self, row: int, columns: int = 1):
+        """
+        Create a standard content section.
+
+        Parameters
+        ----------
+        row : int
+            Grid row inside the scrollable content.
+
+        columns : int
+            Number of responsive columns in the section.
+        """
+
+        section = ctk.CTkFrame(self.content)
+
+        section.grid(
+            row=row,
+            column=0,
+            sticky="ew",
+            padx=self.PAGE_PAD_X,
+            pady=(0, self.SECTION_PAD_Y)
+        )
+
+        for column in range(columns):
+            section.grid_columnconfigure(column, weight=1)
+
+        return section
