@@ -5,16 +5,17 @@ MTF Analyzer Page
 
 from __future__ import annotations
 
+from tkinter import filedialog, messagebox
+
 import customtkinter as ctk
 import pandas as pd
 
-from tkinter import filedialog, messagebox
-
-from core.mtf_service import MTFService
+from core.services.mtf_service import MTFService
 from desktop.widgets.chart_widget import ChartWidget
 from desktop.widgets.dashboard_card import DashboardCard
 from desktop.widgets.mini_table import MiniTable
 from desktop.widgets.result_table import ResultTable
+
 
 
 class MTFPage(ctk.CTkFrame):
@@ -33,7 +34,7 @@ class MTFPage(ctk.CTkFrame):
 
         self._build_header()
         self._build_cards()
-        self._build_analysis_area()
+        self._build_analytics_area()
         self._build_result_table()
 
     def _build_header(self) -> None:
@@ -99,24 +100,50 @@ class MTFPage(ctk.CTkFrame):
         )
         self.mtm_card.grid(row=0, column=3, sticky="ew", padx=(10, 0))
 
-    def _build_analysis_area(self) -> None:
-        analysis_frame = ctk.CTkFrame(self, fg_color="transparent")
-        analysis_frame.grid(row=2, column=0, sticky="ew", padx=20, pady=10)
+    def _build_analytics_area(self) -> None:
+        analytics_frame = ctk.CTkFrame(self, fg_color="transparent")
+        analytics_frame.grid(row=2, column=0, sticky="ew", padx=20, pady=10)
 
-        analysis_frame.grid_columnconfigure(0, weight=2)
-        analysis_frame.grid_columnconfigure(1, weight=1)
+        analytics_frame.grid_columnconfigure(0, weight=2)
+        analytics_frame.grid_columnconfigure(1, weight=1)
+        analytics_frame.grid_rowconfigure(0, weight=1)
+        analytics_frame.grid_rowconfigure(1, weight=1)
 
         self.exposure_chart = ChartWidget(
-            analysis_frame,
+            analytics_frame,
             title="Top Symbol Exposure",
         )
-        self.exposure_chart.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+        self.exposure_chart.grid(
+            row=0,
+            column=0,
+            rowspan=2,
+            sticky="nsew",
+            padx=(0, 10),
+        )
 
         self.top_exposure_table = MiniTable(
-            analysis_frame,
+            analytics_frame,
             title="Top Exposure Clients",
         )
-        self.top_exposure_table.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
+        self.top_exposure_table.grid(
+            row=0,
+            column=1,
+            sticky="nsew",
+            padx=(10, 0),
+            pady=(0, 10),
+        )
+
+        self.gainers_table = MiniTable(
+            analytics_frame,
+            title="Top MTM Gainers",
+        )
+        self.gainers_table.grid(
+            row=1,
+            column=1,
+            sticky="nsew",
+            padx=(10, 0),
+            pady=(10, 0),
+        )
 
     def _build_result_table(self) -> None:
         table_frame = ctk.CTkFrame(self)
@@ -157,7 +184,8 @@ class MTFPage(ctk.CTkFrame):
 
             self._refresh_dashboard(dataframe)
             self._refresh_chart(dataframe)
-            self._refresh_mini_table(dataframe)
+            self._refresh_top_exposure_table(dataframe)
+            self._refresh_gainers_table(dataframe)
             self._refresh_result_table(dataframe)
 
             self.status_label.configure(text="MTF file imported successfully")
@@ -169,15 +197,22 @@ class MTFPage(ctk.CTkFrame):
     def _refresh_dashboard(self, dataframe: pd.DataFrame) -> None:
         summary = MTFService.calculate_summary(dataframe)
 
-        clients = summary.get("clients", 0)
-        positions = summary.get("positions", 0)
-        buy_value = summary.get("buy_value", 0)
-        total_mtm = summary.get("total_mtm", 0)
-
-        self._update_card(self.clients_card, str(clients))
-        self._update_card(self.positions_card, str(positions))
-        self._update_card(self.buy_value_card, self._format_currency(buy_value))
-        self._update_card(self.mtm_card, self._format_currency(total_mtm))
+        self._update_card(
+            self.clients_card,
+            str(summary.get("clients", 0)),
+        )
+        self._update_card(
+            self.positions_card,
+            str(summary.get("positions", 0)),
+        )
+        self._update_card(
+            self.buy_value_card,
+            self._format_currency(summary.get("buy_value", 0)),
+        )
+        self._update_card(
+            self.mtm_card,
+            self._format_currency(summary.get("total_mtm", 0)),
+        )
 
     def _refresh_chart(self, dataframe: pd.DataFrame) -> None:
         chart_data = MTFService.symbol_exposure(dataframe)
@@ -203,32 +238,49 @@ class MTFPage(ctk.CTkFrame):
             ylabel="Exposure",
         )
 
-    def _refresh_mini_table(self, dataframe: pd.DataFrame) -> None:
+    def _refresh_top_exposure_table(self, dataframe: pd.DataFrame) -> None:
         table_data = MTFService.top_exposure(dataframe)
+        self._load_mini_table(
+            table=self.top_exposure_table,
+            dataframe=table_data,
+            preferred_columns=["AccountId", "BUY VALUE", "MarkToMarket"],
+        )
 
-        if table_data is None or table_data.empty:
-            self.top_exposure_table.set_data([])
-            return
-
-        display_columns = []
-
-        for column in ["AccountId", "BUY VALUE", "MarkToMarket"]:
-            if column in table_data.columns:
-                display_columns.append(column)
-
-        if not display_columns:
-            display_columns = list(table_data.columns[:3])
-
-        rows = []
-
-        for _, row in table_data[display_columns].iterrows():
-            rows.append([self._format_cell(value) for value in row.tolist()])
-
-        self.top_exposure_table.set_headers(display_columns)
-        self.top_exposure_table.set_data(rows)
+    def _refresh_gainers_table(self, dataframe: pd.DataFrame) -> None:
+        table_data = MTFService.top_mtm_gainers(dataframe)
+        self._load_mini_table(
+            table=self.gainers_table,
+            dataframe=table_data,
+            preferred_columns=["AccountId", "Symbol", "MarkToMarket"],
+        )
 
     def _refresh_result_table(self, dataframe: pd.DataFrame) -> None:
         self.result_table.load_dataframe(dataframe)
+
+    def _load_mini_table(
+        self,
+        table: MiniTable,
+        dataframe: pd.DataFrame | None,
+        preferred_columns: list[str],
+    ) -> None:
+        if dataframe is None or dataframe.empty:
+            table.set_data([])
+            return
+
+        display_columns = [
+            column for column in preferred_columns if column in dataframe.columns
+        ]
+
+        if not display_columns:
+            display_columns = list(dataframe.columns[:3])
+
+        rows = []
+
+        for _, row in dataframe[display_columns].iterrows():
+            rows.append([self._format_cell(value) for value in row.tolist()])
+
+        table.set_headers(display_columns)
+        table.set_data(rows)
 
     def _update_card(self, card: DashboardCard, value: str) -> None:
         if hasattr(card, "set_value"):

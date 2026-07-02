@@ -5,7 +5,7 @@ from desktop.dashboard_page import DashboardPage
 from desktop.sidebar import Sidebar
 from desktop.stock_page import StockPage
 from desktop.portfolio_page import PortfolioPage
-
+from desktop.mtf_page import MTFPage
 
 class Dashboard(ctk.CTk):
 
@@ -54,25 +54,30 @@ class Dashboard(ctk.CTk):
 
     def change_page(self, page):
 
-        if page == "dashboard":
-            self.show_dashboard()
+       if page == "dashboard":
+        self.show_dashboard()
 
-        elif page == "analytics":
-            self.show_analytics()
+       elif page == "analytics":
+        self.show_analytics()
 
-        elif page == "stocks":
-            self.show_stocks()
+       elif page == "stocks":
+        self.show_stocks()
 
-        elif page == "portfolio":
-            self.clear_main()
+       elif page == "portfolio":
+        self.clear_main()
+        PortfolioPage(self.main).pack(fill="both", expand=True)
 
-            PortfolioPage(self.main).pack(fill="both", expand=True)
+       elif page == "mtf":
+        self.clear_main()
+        MTFPage(self.main).pack(fill="both", expand=True)
 
-        else:
-            self.clear_main()
+       else:
+        self.clear_main()
 
-            label = ctk.CTkLabel(
-                self.main, text=page.title(), font=("Segoe UI", 30, "bold")
-            )
+        label = ctk.CTkLabel(
+            self.main,
+            text=page.title(),
+            font=("Segoe UI", 30, "bold"),
+        )
 
-            label.pack(pady=30)
+        label.pack(pady=30)
