@@ -13,7 +13,7 @@ chart.plot_line(
     [120, 150, 140, 180, 210],
     title="Monthly Price",
     xlabel="Month",
-    ylabel="Price"
+    ylabel="Price",
 )
 
 app.mainloop()

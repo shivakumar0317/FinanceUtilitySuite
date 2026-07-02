@@ -38,24 +38,14 @@ class PortfolioCalculator:
 
         dataframe["Current Price"] = current_prices
 
-        dataframe["Investment"] = (
-            dataframe["Qty"] *
-            dataframe["Buy Price"]
-        )
+        dataframe["Investment"] = dataframe["Qty"] * dataframe["Buy Price"]
 
-        dataframe["Current Value"] = (
-            dataframe["Qty"] *
-            dataframe["Current Price"]
-        )
+        dataframe["Current Value"] = dataframe["Qty"] * dataframe["Current Price"]
 
-        dataframe["Profit"] = (
-            dataframe["Current Value"] -
-            dataframe["Investment"]
-        )
+        dataframe["Profit"] = dataframe["Current Value"] - dataframe["Investment"]
 
         dataframe["Return %"] = (
-            dataframe["Profit"] /
-            dataframe["Investment"] * 100
+            dataframe["Profit"] / dataframe["Investment"] * 100
         ).round(2)
 
         dataframe["Current Price"] = dataframe["Current Price"].round(2)
@@ -74,17 +64,11 @@ class PortfolioCalculator:
         profit = df["Profit"].sum()
 
         return {
-
             "investment": investment,
-
             "current_value": current,
-
             "profit": profit,
-
-            "return_percent": round(
-                (profit / investment) * 100,
-                2
-            ) if investment else 0,
-
-            "holdings": len(df)
+            "return_percent": (
+                round((profit / investment) * 100, 2) if investment else 0
+            ),
+            "holdings": len(df),
         }

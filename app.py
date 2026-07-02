@@ -11,7 +11,7 @@ from config import (
     WINDOW_WIDTH,
     WINDOW_HEIGHT,
     THEME,
-    COLOR_THEME
+    COLOR_THEME,
 )
 
 from desktop.dashboard import Dashboard

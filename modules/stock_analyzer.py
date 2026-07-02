@@ -25,10 +25,7 @@ class StockAnalyzer:
 
         symbol = str(symbol).strip().upper()
 
-        exchanges = [
-            symbol + ".NS",
-            symbol + ".BO"
-        ]
+        exchanges = [symbol + ".NS", symbol + ".BO"]
 
         for ticker_name in exchanges:
 
@@ -52,7 +49,7 @@ class StockAnalyzer:
                     "PE": info.get("trailingPE"),
                     "EPS": info.get("trailingEps"),
                     "Sector": info.get("sector"),
-                    "Industry": info.get("industry")
+                    "Industry": info.get("industry"),
                 }
 
             except Exception:
@@ -68,7 +65,7 @@ class StockAnalyzer:
             "PE": None,
             "EPS": None,
             "Sector": "",
-            "Industry": ""
+            "Industry": "",
         }
 
     def analyze_file(self, filename):

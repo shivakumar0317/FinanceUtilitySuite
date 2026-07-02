@@ -1,6 +1,13 @@
 import customtkinter as ctk
 
-from config import *
+from config import (
+    APP_NAME,
+    APP_VERSION,
+    COLOR_THEME,
+    THEME,
+    WINDOW_HEIGHT,
+    WINDOW_WIDTH,
+)
 from ui.dashboard import Dashboard
 
 ctk.set_appearance_mode(THEME)

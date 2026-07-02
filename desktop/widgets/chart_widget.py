@@ -21,19 +21,13 @@ class ChartWidget(ctk.CTkFrame):
         self.canvas = FigureCanvasTkAgg(self.figure, master=self)
         self.canvas.draw()
 
-        self.canvas.get_tk_widget().grid(
-            row=0,
-            column=0,
-            sticky="nsew"
-        )
+        self.canvas.get_tk_widget().grid(row=0, column=0, sticky="nsew")
 
         toolbar_frame = ctk.CTkFrame(self, fg_color="transparent")
         toolbar_frame.grid(row=1, column=0, sticky="ew")
 
         self.toolbar = NavigationToolbar2Tk(
-            self.canvas,
-            toolbar_frame,
-            pack_toolbar=False
+            self.canvas, toolbar_frame, pack_toolbar=False
         )
         self.toolbar.update()
         self.toolbar.pack(fill="x")

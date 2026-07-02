@@ -18,11 +18,7 @@ class DashboardPage(ctk.CTkFrame):
 
     def create_widgets(self):
 
-        title = ctk.CTkLabel(
-            self,
-            text="Dashboard",
-            font=("Segoe UI", 30, "bold")
-        )
+        title = ctk.CTkLabel(self, text="Dashboard", font=("Segoe UI", 30, "bold"))
         title.pack(pady=25)
 
         cards = ctk.CTkFrame(self)
@@ -41,17 +37,11 @@ class DashboardPage(ctk.CTkFrame):
         self.risk.grid(row=0, column=3, padx=15)
 
         recent = ctk.CTkLabel(
-            self,
-            text="Recent Reports",
-            font=("Segoe UI", 22, "bold")
+            self, text="Recent Reports", font=("Segoe UI", 22, "bold")
         )
         recent.pack(pady=(40, 10))
 
-        self.textbox = ctk.CTkTextbox(
-            self,
-            width=850,
-            height=220
-        )
+        self.textbox = ctk.CTkTextbox(self, width=850, height=220)
         self.textbox.pack()
 
         self.textbox.insert("end", "No reports available...")

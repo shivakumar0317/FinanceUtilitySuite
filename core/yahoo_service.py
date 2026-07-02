@@ -23,10 +23,7 @@ class YahooService:
 
         symbol = str(symbol).strip().upper()
 
-        exchanges = [
-            symbol + ".NS",
-            symbol + ".BO"
-        ]
+        exchanges = [symbol + ".NS", symbol + ".BO"]
 
         for ticker_name in exchanges:
 
@@ -47,32 +44,19 @@ class YahooService:
                 self.logger.info(f"{ticker_name} fetched successfully")
 
                 return {
-
                     "Symbol": symbol,
                     "Exchange": ticker_name,
-
                     "Company": info.get("longName"),
-
                     "CMP": info.get("currentPrice"),
-
                     "Beta": info.get("beta"),
-
                     "Market Cap": info.get("marketCap"),
-
                     "PE": info.get("trailingPE"),
-
                     "EPS": info.get("trailingEps"),
-
                     "Sector": info.get("sector"),
-
                     "Industry": info.get("industry"),
-
                     "Dividend Yield": info.get("dividendYield"),
-
                     "52 Week High": info.get("fiftyTwoWeekHigh"),
-
-                    "52 Week Low": info.get("fiftyTwoWeekLow")
-
+                    "52 Week Low": info.get("fiftyTwoWeekLow"),
                 }
 
             except Exception as e:

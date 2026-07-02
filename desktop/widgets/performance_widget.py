@@ -40,19 +40,10 @@ class PerformanceWidget(ctk.CTkFrame):
         # Title
         # -------------------------------------------------
 
-        title_label = ctk.CTkLabel(
-            self,
-            text=title,
-            font=("Segoe UI", 16, "bold")
-        )
+        title_label = ctk.CTkLabel(self, text=title, font=("Segoe UI", 16, "bold"))
 
         title_label.grid(
-            row=0,
-            column=0,
-            columnspan=2,
-            sticky="w",
-            padx=15,
-            pady=(12, 18)
+            row=0, column=0, columnspan=2, sticky="w", padx=15, pady=(12, 18)
         )
 
         metrics = [
@@ -61,40 +52,20 @@ class PerformanceWidget(ctk.CTkFrame):
             "Average Return",
             "Winning Stocks",
             "Losing Stocks",
-            "Total Profit"
+            "Total Profit",
         ]
 
         for row, metric in enumerate(metrics, start=1):
 
-            name = ctk.CTkLabel(
-                self,
-                text=metric,
-                anchor="w",
-                font=("Segoe UI", 12)
-            )
+            name = ctk.CTkLabel(self, text=metric, anchor="w", font=("Segoe UI", 12))
 
-            name.grid(
-                row=row,
-                column=0,
-                sticky="w",
-                padx=20,
-                pady=6
-            )
+            name.grid(row=row, column=0, sticky="w", padx=20, pady=6)
 
             value = ctk.CTkLabel(
-                self,
-                text="-",
-                anchor="e",
-                font=("Segoe UI", 12, "bold")
+                self, text="-", anchor="e", font=("Segoe UI", 12, "bold")
             )
 
-            value.grid(
-                row=row,
-                column=1,
-                sticky="e",
-                padx=20,
-                pady=6
-            )
+            value.grid(row=row, column=1, sticky="e", padx=20, pady=6)
 
             self.metric_labels[metric] = value
 
@@ -103,7 +74,6 @@ class PerformanceWidget(ctk.CTkFrame):
     # -----------------------------------------------------
 
     def update_metrics(self, metrics: dict):
-
         """
         Update displayed metrics.
 
@@ -122,12 +92,9 @@ class PerformanceWidget(ctk.CTkFrame):
         for key, value in metrics.items():
 
             if key in self.metric_labels:
-                self.metric_labels[key].configure(
-                    text=str(value)
-                )
+                self.metric_labels[key].configure(text=str(value))
 
     def clear(self):
-
         """Reset all values."""
 
         for label in self.metric_labels.values():

@@ -35,12 +35,7 @@ ASSET_FOLDER = BASE_DIR / "assets"
 
 # Create folders automatically
 
-for folder in [
-    DATA_FOLDER,
-    OUTPUT_FOLDER,
-    LOG_FOLDER,
-    ASSET_FOLDER
-]:
+for folder in [DATA_FOLDER, OUTPUT_FOLDER, LOG_FOLDER, ASSET_FOLDER]:
     folder.mkdir(exist_ok=True)
 
 # ----------------------------

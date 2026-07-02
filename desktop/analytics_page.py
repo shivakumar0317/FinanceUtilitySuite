@@ -17,9 +17,7 @@ class AnalyticsPage(ctk.CTkFrame):
         self.grid_rowconfigure(2, weight=1)
 
         title = ctk.CTkLabel(
-            self,
-            text="Analytics Dashboard",
-            font=("Segoe UI", 28, "bold")
+            self, text="Analytics Dashboard", font=("Segoe UI", 28, "bold")
         )
         title.grid(row=0, column=0, sticky="w", padx=20, pady=(20, 10))
 
@@ -39,10 +37,7 @@ class AnalyticsPage(ctk.CTkFrame):
 
         for index, (title, value, subtitle) in enumerate(cards):
             card = DashboardCard(
-                cards_frame,
-                title=title,
-                value=value,
-                subtitle=subtitle
+                cards_frame, title=title, value=value, subtitle=subtitle
             )
             card.grid(row=0, column=index, padx=10, pady=10, sticky="nsew")
 
@@ -57,31 +52,14 @@ class AnalyticsPage(ctk.CTkFrame):
 
         self.price_chart = ChartWidget(charts_frame)
         self.price_chart.grid(
-            row=0,
-            column=0,
-            columnspan=2,
-            sticky="nsew",
-            padx=10,
-            pady=10
+            row=0, column=0, columnspan=2, sticky="nsew", padx=10, pady=10
         )
 
         self.sector_chart = ChartWidget(charts_frame)
-        self.sector_chart.grid(
-            row=1,
-            column=0,
-            sticky="nsew",
-            padx=10,
-            pady=10
-        )
+        self.sector_chart.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
 
         self.risk_chart = ChartWidget(charts_frame)
-        self.risk_chart.grid(
-            row=1,
-            column=1,
-            sticky="nsew",
-            padx=10,
-            pady=10
-        )
+        self.risk_chart.grid(row=1, column=1, sticky="nsew", padx=10, pady=10)
 
         self.load_sample_data()
 
@@ -92,13 +70,13 @@ class AnalyticsPage(ctk.CTkFrame):
             [1450, 1520, 1490, 1580, 1640, 1705],
             title="Stock Price History",
             xlabel="Month",
-            ylabel="Price"
+            ylabel="Price",
         )
 
         self.sector_chart.plot_pie(
             ["IT", "Banking", "Auto", "Pharma"],
             [35, 30, 20, 15],
-            title="Sector Allocation"
+            title="Sector Allocation",
         )
 
         self.risk_chart.plot_bar(
@@ -106,5 +84,5 @@ class AnalyticsPage(ctk.CTkFrame):
             [45, 30, 25],
             title="Risk Distribution",
             xlabel="Risk Level",
-            ylabel="Stocks"
+            ylabel="Stocks",
         )

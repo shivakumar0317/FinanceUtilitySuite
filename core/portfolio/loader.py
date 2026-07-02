@@ -15,11 +15,7 @@ class PortfolioLoader:
     Loads portfolio files from Excel or CSV.
     """
 
-    REQUIRED_COLUMNS = [
-        "Symbol",
-        "Qty",
-        "Buy Price"
-    ]
+    REQUIRED_COLUMNS = ["Symbol", "Qty", "Buy Price"]
 
     @classmethod
     def load(cls, file_path: str) -> pd.DataFrame:
@@ -38,9 +34,7 @@ class PortfolioLoader:
             df = pd.read_csv(file_path)
 
         else:
-            raise ValueError(
-                "Unsupported file format."
-            )
+            raise ValueError("Unsupported file format.")
 
         df.columns = [c.strip() for c in df.columns]
 
@@ -60,7 +54,4 @@ class PortfolioLoader:
 
         if missing:
 
-            raise ValueError(
-                "Missing columns:\n\n"
-                + "\n".join(missing)
-            )
+            raise ValueError("Missing columns:\n\n" + "\n".join(missing))

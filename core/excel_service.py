@@ -6,7 +6,6 @@ Creates professional Excel reports.
 """
 
 from datetime import datetime
-from pathlib import Path
 
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
@@ -43,15 +42,10 @@ class ExcelService:
         # ----------------------------------------
 
         header_fill = PatternFill(
-            fill_type="solid",
-            start_color="1F4E78",
-            end_color="1F4E78"
+            fill_type="solid", start_color="1F4E78", end_color="1F4E78"
         )
 
-        header_font = Font(
-            bold=True,
-            color="FFFFFF"
-        )
+        header_font = Font(bold=True, color="FFFFFF")
 
         center = Alignment(horizontal="center")
 
@@ -97,7 +91,7 @@ class ExcelService:
 
                         max_length = len(str(cell.value))
 
-                except:
+                except Exception:
 
                     pass
 
@@ -134,27 +128,17 @@ class ExcelService:
 
         if "Risk" in dataframe.columns:
 
-            summary.append([
-                "High Risk",
-                len(dataframe[dataframe["Risk"] == "High"])
-            ])
+            summary.append(["High Risk", len(dataframe[dataframe["Risk"] == "High"])])
 
-            summary.append([
-                "Moderate Risk",
-                len(dataframe[dataframe["Risk"] == "Moderate"])
-            ])
+            summary.append(
+                ["Moderate Risk", len(dataframe[dataframe["Risk"] == "Moderate"])]
+            )
 
-            summary.append([
-                "Low Risk",
-                len(dataframe[dataframe["Risk"] == "Low"])
-            ])
+            summary.append(["Low Risk", len(dataframe[dataframe["Risk"] == "Low"])])
 
         if "Beta" in dataframe.columns:
 
-            summary.append([
-                "Average Beta",
-                round(dataframe["Beta"].mean(), 2)
-            ])
+            summary.append(["Average Beta", round(dataframe["Beta"].mean(), 2)])
 
         wb.save(filename)
 

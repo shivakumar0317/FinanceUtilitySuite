@@ -86,13 +86,12 @@ class StockService:
 
         unique_symbols = list(dict.fromkeys(symbols))
 
-        self.logger.info(
-            f"{len(unique_symbols)} unique symbols prepared."
-        )
+        self.logger.info(f"{len(unique_symbols)} unique symbols prepared.")
 
         return unique_symbols
-    
+
         # --------------------------------------------------
+
     # Analyze Symbols
     # --------------------------------------------------
 
@@ -106,33 +105,33 @@ class StockService:
 
         for index, symbol in enumerate(symbols, start=1):
 
-         if progress_callback:
+            if progress_callback:
 
-            progress = index / len(symbols)
+                progress = index / len(symbols)
 
-            progress_callback(index, len(symbols), symbol, progress)
+                progress_callback(index, len(symbols), symbol, progress)
 
-            self.logger.info(f"{index}/{total} : {symbol}")
+                self.logger.info(f"{index}/{total} : {symbol}")
 
-            stock = self.yahoo.get_stock_info(symbol)
+                stock = self.yahoo.get_stock_info(symbol)
 
-            if stock is None:
+                if stock is None:
 
-                self.logger.warning(f"{symbol} skipped.")
+                    self.logger.warning(f"{symbol} skipped.")
 
-                continue
+                    continue
 
-            beta = stock.get("Beta")
+                beta = stock.get("Beta")
 
-            stock["Risk"] = self.risk.get_beta_risk(beta)
+                stock["Risk"] = self.risk.get_beta_risk(beta)
 
-            score = self.risk.investment_score(stock)
+                score = self.risk.investment_score(stock)
 
-            stock["Score"] = score
+                stock["Score"] = score
 
-            stock["Rating"] = self.risk.star_rating(score)
+                stock["Rating"] = self.risk.star_rating(score)
 
-            results.append(stock)
+                results.append(stock)
 
         dataframe = pd.DataFrame(results)
 

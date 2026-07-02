@@ -15,9 +15,7 @@ class Sidebar(ctk.CTkFrame):
     def create_widgets(self):
 
         title = ctk.CTkLabel(
-            self,
-            text="Finance\nUtility Suite",
-            font=("Segoe UI", 22, "bold")
+            self, text="Finance\nUtility Suite", font=("Segoe UI", 22, "bold")
         )
 
         title.pack(pady=(30, 25))
@@ -40,7 +38,7 @@ class Sidebar(ctk.CTkFrame):
                 text=text,
                 width=180,
                 anchor="w",
-                command=lambda p=page: self.callback(p)
+                command=lambda p=page: self.callback(p),
             )
 
             btn.pack(pady=8, padx=20)

@@ -21,9 +21,7 @@ class AppLogger:
 
         self.logger.setLevel(logging.INFO)
 
-        formatter = logging.Formatter(
-            "%(asctime)s | %(levelname)s | %(message)s"
-        )
+        formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(message)s")
 
         file_handler = logging.FileHandler(LOG_FILE)
 

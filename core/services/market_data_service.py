@@ -35,11 +35,7 @@ class MarketDataService:
                 return price
 
         # Try NSE, then BSE, then raw symbol
-        ticker_symbols = [
-            f"{symbol}.NS",
-            f"{symbol}.BO",
-            symbol
-        ]
+        ticker_symbols = [f"{symbol}.NS", f"{symbol}.BO", symbol]
 
         for ticker_symbol in ticker_symbols:
 
@@ -51,10 +47,7 @@ class MarketDataService:
                 if not history.empty:
                     price = float(history["Close"].dropna().iloc[-1])
 
-                    cls._price_cache[symbol] = (
-                        price,
-                        time.time()
-                    )
+                    cls._price_cache[symbol] = (price, time.time())
 
                     return price
 

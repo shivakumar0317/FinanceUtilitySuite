@@ -40,11 +40,7 @@ class BasePage(ctk.CTkFrame):
         self.grid_columnconfigure(0, weight=1)
 
         self.content = ctk.CTkScrollableFrame(self)
-        self.content.grid(
-            row=0,
-            column=0,
-            sticky="nsew"
-        )
+        self.content.grid(row=0, column=0, sticky="nsew")
 
         self.content.grid_columnconfigure(0, weight=1)
 
@@ -61,33 +57,23 @@ class BasePage(ctk.CTkFrame):
             Optional subtitle text.
         """
 
-        header = ctk.CTkFrame(
-            self.content,
-            fg_color="transparent"
-        )
+        header = ctk.CTkFrame(self.content, fg_color="transparent")
 
         header.grid(
             row=0,
             column=0,
             sticky="ew",
             padx=self.PAGE_PAD_X,
-            pady=(self.PAGE_PAD_Y, 10)
+            pady=(self.PAGE_PAD_Y, 10),
         )
 
         header.grid_columnconfigure(0, weight=1)
 
         title_label = ctk.CTkLabel(
-            header,
-            text=title,
-            font=("Segoe UI", 28, "bold"),
-            anchor="w"
+            header, text=title, font=("Segoe UI", 28, "bold"), anchor="w"
         )
 
-        title_label.grid(
-            row=0,
-            column=0,
-            sticky="w"
-        )
+        title_label.grid(row=0, column=0, sticky="w")
 
         if subtitle:
             subtitle_label = ctk.CTkLabel(
@@ -95,15 +81,10 @@ class BasePage(ctk.CTkFrame):
                 text=subtitle,
                 font=("Segoe UI", 13),
                 anchor="w",
-                text_color="gray"
+                text_color="gray",
             )
 
-            subtitle_label.grid(
-                row=1,
-                column=0,
-                sticky="w",
-                pady=(4, 0)
-            )
+            subtitle_label.grid(row=1, column=0, sticky="w", pady=(4, 0))
 
         return header
 
@@ -127,7 +108,7 @@ class BasePage(ctk.CTkFrame):
             column=0,
             sticky="ew",
             padx=self.PAGE_PAD_X,
-            pady=(0, self.SECTION_PAD_Y)
+            pady=(0, self.SECTION_PAD_Y),
         )
 
         for column in range(columns):

@@ -41,8 +41,8 @@ class StockPage(ctk.CTkFrame):
             filetypes=[
                 ("Excel Files", "*.xlsx"),
                 ("CSV Files", "*.csv"),
-                ("All Files", "*.*")
-            ]
+                ("All Files", "*.*"),
+            ],
         )
 
         if filename:
@@ -73,10 +73,7 @@ class StockPage(ctk.CTkFrame):
 
         self.progress.set(0)
 
-        worker = threading.Thread(
-            target=self.run_analysis,
-            daemon=True
-        )
+        worker = threading.Thread(target=self.run_analysis, daemon=True)
 
         worker.start()
 
@@ -92,30 +89,21 @@ class StockPage(ctk.CTkFrame):
 
             self.log_message("Reading file...")
 
-            dataframe = self.stock_service.read_file(
-                self.selected_file
-            )
+            dataframe = self.stock_service.read_file(self.selected_file)
 
             self.progress.set(0.30)
 
-            self.stock_service.validate_dataframe(
-                dataframe
-            )
+            self.stock_service.validate_dataframe(dataframe)
 
-            symbols = self.stock_service.prepare_symbols(
-                dataframe
-            )
+            symbols = self.stock_service.prepare_symbols(dataframe)
 
             self.progress.set(0.50)
 
-            self.log_message(
-                f"Found {len(symbols)} symbols."
-            )
+            self.log_message(f"Found {len(symbols)} symbols.")
 
             # Analyze first 5 stocks (testing)
             report = self.stock_service.analyze_symbols(
-                symbols[:5],
-                self.update_progress
+                symbols[:5], self.update_progress
             )
 
             self.log_message("Displaying results...")
@@ -124,19 +112,13 @@ class StockPage(ctk.CTkFrame):
 
             self.progress.set(0.90)
 
-            self.log_message(
-                "Creating Excel report..."
-            )
+            self.log_message("Creating Excel report...")
 
-            output = self.excel_service.export(
-                report
-            )
+            output = self.excel_service.export(report)
 
             self.progress.set(1)
 
-            self.log_message(
-                "Analysis Completed Successfully."
-            )
+            self.log_message("Analysis Completed Successfully.")
 
             self.log_message(output)
 
@@ -148,27 +130,17 @@ class StockPage(ctk.CTkFrame):
 
             self.is_running = False
 
-            self.analyze_btn.configure(
-                state="normal"
-            )
+            self.analyze_btn.configure(state="normal")
 
     # ----------------------------------------------------
     # Progress Callback
     # ----------------------------------------------------
 
-    def update_progress(
-        self,
-        current,
-        total,
-        symbol,
-        progress
-    ):
+    def update_progress(self, current, total, symbol, progress):
 
         self.progress.set(progress)
 
-        self.log_message(
-            f"Analyzing {current}/{total} : {symbol}"
-        )
+        self.log_message(f"Analyzing {current}/{total} : {symbol}")
 
     # ----------------------------------------------------
     # Logger
@@ -176,10 +148,7 @@ class StockPage(ctk.CTkFrame):
 
     def log_message(self, message):
 
-        self.log.insert(
-            "end",
-            str(message) + "\n"
-        )
+        self.log.insert("end", str(message) + "\n")
 
         self.log.see("end")
 
@@ -189,9 +158,7 @@ class StockPage(ctk.CTkFrame):
 
     def search_table(self, event=None):
 
-        self.result_table.search(
-            self.search_var.get()
-        )
+        self.result_table.search(self.search_var.get())
 
     # ----------------------------------------------------
     # UI
@@ -203,11 +170,7 @@ class StockPage(ctk.CTkFrame):
         # Title
         # ----------------------------------------
 
-        title = ctk.CTkLabel(
-            self,
-            text="Stock Analyzer",
-            font=("Segoe UI", 28, "bold")
-        )
+        title = ctk.CTkLabel(self, text="Stock Analyzer", font=("Segoe UI", 28, "bold"))
 
         title.pack(pady=20)
 
@@ -216,10 +179,7 @@ class StockPage(ctk.CTkFrame):
         # ----------------------------------------
 
         self.file_label = ctk.CTkLabel(
-            self,
-            text="No file selected",
-            font=("Segoe UI", 14),
-            wraplength=700
+            self, text="No file selected", font=("Segoe UI", 14), wraplength=700
         )
 
         self.file_label.pack(pady=10)
@@ -229,10 +189,7 @@ class StockPage(ctk.CTkFrame):
         # ----------------------------------------
 
         self.browse_btn = ctk.CTkButton(
-            self,
-            text="Browse Excel / CSV",
-            command=self.browse_file,
-            width=220
+            self, text="Browse Excel / CSV", command=self.browse_file, width=220
         )
 
         self.browse_btn.pack(pady=10)
@@ -242,10 +199,7 @@ class StockPage(ctk.CTkFrame):
         # ----------------------------------------
 
         self.analyze_btn = ctk.CTkButton(
-            self,
-            text="Analyze",
-            command=self.start_analysis,
-            width=220
+            self, text="Analyze", command=self.start_analysis, width=220
         )
 
         self.analyze_btn.pack(pady=10)
@@ -254,10 +208,7 @@ class StockPage(ctk.CTkFrame):
         # Progress Bar
         # ----------------------------------------
 
-        self.progress = ctk.CTkProgressBar(
-            self,
-            width=600
-        )
+        self.progress = ctk.CTkProgressBar(self, width=600)
 
         self.progress.pack(pady=20)
         self.progress.set(0)
@@ -267,18 +218,12 @@ class StockPage(ctk.CTkFrame):
         # ----------------------------------------
 
         log_title = ctk.CTkLabel(
-            self,
-            text="Activity Log",
-            font=("Segoe UI", 18, "bold")
+            self, text="Activity Log", font=("Segoe UI", 18, "bold")
         )
 
         log_title.pack(pady=(10, 5))
 
-        self.log = ctk.CTkTextbox(
-            self,
-            width=850,
-            height=180
-        )
+        self.log = ctk.CTkTextbox(self, width=850, height=180)
 
         self.log.pack(pady=10)
 
@@ -289,9 +234,7 @@ class StockPage(ctk.CTkFrame):
         # ----------------------------------------
 
         search_title = ctk.CTkLabel(
-            self,
-            text="Search Symbol",
-            font=("Segoe UI", 16, "bold")
+            self, text="Search Symbol", font=("Segoe UI", 16, "bold")
         )
 
         search_title.pack(pady=(15, 5))
@@ -302,33 +245,23 @@ class StockPage(ctk.CTkFrame):
             self,
             width=350,
             textvariable=self.search_var,
-            placeholder_text="Type a symbol..."
+            placeholder_text="Type a symbol...",
         )
 
         search_entry.pack(pady=(0, 15))
 
-        search_entry.bind(
-            "<KeyRelease>",
-            self.search_table
-        )
+        search_entry.bind("<KeyRelease>", self.search_table)
 
         # ----------------------------------------
         # Result Table
         # ----------------------------------------
 
         table_title = ctk.CTkLabel(
-            self,
-            text="Analysis Results",
-            font=("Segoe UI", 18, "bold")
+            self, text="Analysis Results", font=("Segoe UI", 18, "bold")
         )
 
         table_title.pack(pady=(5, 10))
 
         self.result_table = ResultTable(self)
 
-        self.result_table.pack(
-            fill="both",
-            expand=True,
-            padx=20,
-            pady=(0, 20)
-        )
+        self.result_table.pack(fill="both", expand=True, padx=20, pady=(0, 20))

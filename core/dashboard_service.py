@@ -14,12 +14,7 @@ class DashboardService:
 
         if total_reports == 0:
 
-            return {
-                "stocks": 0,
-                "reports": 0,
-                "avg_beta": 0,
-                "high_risk": 0
-            }
+            return {"stocks": 0, "reports": 0, "avg_beta": 0, "high_risk": 0}
 
         latest = max(reports, key=lambda f: f.stat().st_mtime)
 
@@ -29,7 +24,7 @@ class DashboardService:
             "stocks": len(df),
             "reports": total_reports,
             "avg_beta": round(df["Beta"].mean(), 2) if "Beta" in df else 0,
-            "high_risk": len(df[df["Risk"] == "High"]) if "Risk" in df else 0
+            "high_risk": len(df[df["Risk"] == "High"]) if "Risk" in df else 0,
         }
 
         return stats

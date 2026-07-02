@@ -5,7 +5,6 @@ Portfolio Service
 
 from __future__ import annotations
 
-import pandas as pd
 
 from core.portfolio.loader import PortfolioLoader
 from core.portfolio.calculator import PortfolioCalculator

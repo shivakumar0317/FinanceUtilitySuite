@@ -32,15 +32,9 @@ class DashboardCard(ctk.CTkFrame):
         subtitle="",
         width=250,
         height=140,
-        **kwargs
+        **kwargs,
     ):
-        super().__init__(
-            master,
-            width=width,
-            height=height,
-            corner_radius=12,
-            **kwargs
-        )
+        super().__init__(master, width=width, height=height, corner_radius=12, **kwargs)
 
         self.grid_propagate(False)
 
@@ -62,35 +56,18 @@ class DashboardCard(ctk.CTkFrame):
         # Title
 
         self.title_label = ctk.CTkLabel(
-            self,
-            text=self.title,
-            font=("Segoe UI", 15, "bold"),
-            anchor="w"
+            self, text=self.title, font=("Segoe UI", 15, "bold"), anchor="w"
         )
 
-        self.title_label.grid(
-            row=0,
-            column=0,
-            sticky="ew",
-            padx=20,
-            pady=(15, 5)
-        )
+        self.title_label.grid(row=0, column=0, sticky="ew", padx=20, pady=(15, 5))
 
         # Value
 
         self.value_label = ctk.CTkLabel(
-            self,
-            text=self.value,
-            font=("Segoe UI", 28, "bold"),
-            anchor="w"
+            self, text=self.value, font=("Segoe UI", 28, "bold"), anchor="w"
         )
 
-        self.value_label.grid(
-            row=1,
-            column=0,
-            sticky="sw",
-            padx=20
-        )
+        self.value_label.grid(row=1, column=0, sticky="sw", padx=20)
 
         # Subtitle
 
@@ -99,16 +76,10 @@ class DashboardCard(ctk.CTkFrame):
             text=self.subtitle,
             font=("Segoe UI", 12),
             text_color="gray70",
-            anchor="w"
+            anchor="w",
         )
 
-        self.subtitle_label.grid(
-            row=2,
-            column=0,
-            sticky="ew",
-            padx=20,
-            pady=(5, 15)
-        )
+        self.subtitle_label.grid(row=2, column=0, sticky="ew", padx=20, pady=(5, 15))
 
     # --------------------------------------------------
     # Update Methods

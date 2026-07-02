@@ -6,7 +6,7 @@ stock_service = StockService()
 excel_service = ExcelService()
 
 # Read your Excel file
-df = stock_service.read_file("data/Funded Stocks.xlsx")   # Change filename if needed
+df = stock_service.read_file("data/Funded Stocks.xlsx")  # Change filename if needed
 
 stock_service.validate_dataframe(df)
 

@@ -19,23 +19,13 @@ class Dashboard(ctk.CTk):
 
     def create_layout(self):
 
-        self.sidebar = Sidebar(
-            self,
-            self.change_page
-        )
+        self.sidebar = Sidebar(self, self.change_page)
 
-        self.sidebar.pack(
-            side="left",
-            fill="y"
-        )
+        self.sidebar.pack(side="left", fill="y")
 
         self.main = ctk.CTkFrame(self)
 
-        self.main.pack(
-            side="right",
-            fill="both",
-            expand=True
-        )
+        self.main.pack(side="right", fill="both", expand=True)
 
         self.show_dashboard()
 
@@ -48,28 +38,19 @@ class Dashboard(ctk.CTk):
 
         self.clear_main()
 
-        DashboardPage(self.main).pack(
-            fill="both",
-            expand=True
-        )
+        DashboardPage(self.main).pack(fill="both", expand=True)
 
     def show_analytics(self):
 
         self.clear_main()
 
-        AnalyticsPage(self.main).pack(
-            fill="both",
-            expand=True
-        )
+        AnalyticsPage(self.main).pack(fill="both", expand=True)
 
     def show_stocks(self):
 
         self.clear_main()
 
-        StockPage(self.main).pack(
-            fill="both",
-            expand=True
-        )
+        StockPage(self.main).pack(fill="both", expand=True)
 
     def change_page(self, page):
 
@@ -85,18 +66,13 @@ class Dashboard(ctk.CTk):
         elif page == "portfolio":
             self.clear_main()
 
-            PortfolioPage(self.main).pack(
-             fill="both",
-             expand=True
-    )    
+            PortfolioPage(self.main).pack(fill="both", expand=True)
 
         else:
             self.clear_main()
 
             label = ctk.CTkLabel(
-                self.main,
-                text=page.title(),
-                font=("Segoe UI", 30, "bold")
+                self.main, text=page.title(), font=("Segoe UI", 30, "bold")
             )
 
             label.pack(pady=30)

@@ -13,15 +13,10 @@ class ExcelExporter:
         ws.title = "Stock Analysis"
 
         header_fill = PatternFill(
-            start_color="1F4E78",
-            end_color="1F4E78",
-            fill_type="solid"
+            start_color="1F4E78", end_color="1F4E78", fill_type="solid"
         )
 
-        header_font = Font(
-            bold=True,
-            color="FFFFFF"
-        )
+        header_font = Font(bold=True, color="FFFFFF")
 
         # Write Header
         for col, column in enumerate(dataframe.columns, start=1):
@@ -42,9 +37,7 @@ class ExcelExporter:
 
             length = max(len(str(cell.value)) if cell.value else 0 for cell in column)
 
-            ws.column_dimensions[
-                get_column_letter(column[0].column)
-            ].width = length + 3
+            ws.column_dimensions[get_column_letter(column[0].column)].width = length + 3
 
         ws.freeze_panes = "A2"
         ws.auto_filter.ref = ws.dimensions
