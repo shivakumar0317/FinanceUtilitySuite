@@ -3,7 +3,6 @@ import customtkinter as ctk
 from desktop.widgets.stat_card import StatCard
 from core.dashboard_service import DashboardService
 
-
 class DashboardPage(ctk.CTkFrame):
 
     def __init__(self, master):
@@ -43,6 +42,8 @@ class DashboardPage(ctk.CTkFrame):
 
         self.textbox = ctk.CTkTextbox(self, width=850, height=220)
         self.textbox.pack()
+
+        self.textbox.pack_forget()
 
         self.textbox.insert("end", "No reports available...")
 
