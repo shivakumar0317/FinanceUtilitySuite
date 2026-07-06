@@ -192,7 +192,7 @@ class MTFPage(ctk.CTkFrame):
             self.activity_log.success("Loading MTF file...")
             self.progress.update_progress(0.20, "Loading file")
 
-            dataframe = MTFService.load(file_path)
+            dataframe, _summary = MTFService.load(file_path)
 
             self.activity_log.success("Validating columns...")
             self.progress.update_progress(0.40, "Validating file")
