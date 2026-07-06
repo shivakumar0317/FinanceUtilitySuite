@@ -6,7 +6,7 @@ Reusable Matplotlib chart engine used across Portfolio,
 Analytics, Risk Dashboard and MTF modules.
 
 Author : Shiva Kumar
-Version: 0.95
+Version: 0.96
 """
 
 from __future__ import annotations
@@ -96,8 +96,8 @@ class ChartWidget(ctk.CTkFrame):
 
         elif chart_type == "bar":
             self._plot_bar_internal(
-                x=kwargs.get("x", []),
-                y=kwargs.get("y", []),
+                x=kwargs.get("x", kwargs.get("labels", [])),
+                y=kwargs.get("y", kwargs.get("values", [])),
                 title=kwargs.get("title", self.title),
                 xlabel=kwargs.get("xlabel", ""),
                 ylabel=kwargs.get("ylabel", ""),
@@ -105,8 +105,8 @@ class ChartWidget(ctk.CTkFrame):
 
         elif chart_type == "line":
             self._plot_line_internal(
-                x=kwargs.get("x", []),
-                y=kwargs.get("y", []),
+                x=kwargs.get("x", kwargs.get("labels", [])),
+                y=kwargs.get("y", kwargs.get("values", [])),
                 title=kwargs.get("title", self.title),
                 xlabel=kwargs.get("xlabel", ""),
                 ylabel=kwargs.get("ylabel", ""),
@@ -114,50 +114,81 @@ class ChartWidget(ctk.CTkFrame):
 
         self._redraw_chart()
 
-    def plot_pie(self, labels: Sequence, values: Sequence, title: str = "") -> None:
-        """Backward-compatible pie chart method."""
+    def set_title(self, title: str) -> None:
+        """Update widget title used by plots."""
+
+        self.title = title
+
+    def plot_pie(
+        self,
+        labels: Sequence,
+        values: Sequence,
+        title: str = "",
+    ) -> None:
+        """Plot pie chart."""
 
         self.plot(
             chart_type="pie",
             labels=labels,
             values=values,
-            title=title,
+            title=title or self.title,
         )
 
     def plot_bar(
         self,
-        x: Sequence,
-        y: Sequence,
+        x: Sequence | None = None,
+        y: Sequence | None = None,
         title: str = "",
         xlabel: str = "",
         ylabel: str = "",
+        labels: Sequence | None = None,
+        values: Sequence | None = None,
     ) -> None:
-        """Backward-compatible bar chart method."""
+        """Plot bar chart.
+
+        Supports both:
+        plot_bar(x=[...], y=[...])
+        plot_bar(labels=[...], values=[...])
+        """
+
+        if x is None:
+            x = labels or []
+
+        if y is None:
+            y = values or []
 
         self.plot(
             chart_type="bar",
             x=x,
             y=y,
-            title=title,
+            title=title or self.title,
             xlabel=xlabel,
             ylabel=ylabel,
         )
 
     def plot_line(
         self,
-        x: Sequence,
-        y: Sequence,
+        x: Sequence | None = None,
+        y: Sequence | None = None,
         title: str = "",
         xlabel: str = "",
         ylabel: str = "",
+        labels: Sequence | None = None,
+        values: Sequence | None = None,
     ) -> None:
         """Plot line chart."""
+
+        if x is None:
+            x = labels or []
+
+        if y is None:
+            y = values or []
 
         self.plot(
             chart_type="line",
             x=x,
             y=y,
-            title=title,
+            title=title or self.title,
             xlabel=xlabel,
             ylabel=ylabel,
         )
@@ -204,6 +235,7 @@ class ChartWidget(ctk.CTkFrame):
         )
 
         self.axis.set_title(title, fontsize=12, fontweight="bold")
+        self.axis.axis("equal")
 
     def _plot_bar_internal(
         self,
