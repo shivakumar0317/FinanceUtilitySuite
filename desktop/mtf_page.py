@@ -10,8 +10,8 @@ from tkinter import filedialog, messagebox
 import customtkinter as ctk
 import pandas as pd
 
-from desktop.base_page import BasePage
 from core.services.mtf_service import MTFService
+from desktop.base_page import BasePage
 from desktop.widgets.activity_log import ActivityLog
 from desktop.widgets.chart_widget import ChartWidget
 from desktop.widgets.dashboard_card import DashboardCard
@@ -25,9 +25,9 @@ class MTFPage(BasePage):
 
     def __init__(self, master):
         super().__init__(
-        master,
-        title="MTF Risk Dashboard",
-    )
+            master,
+            title="MTF Risk Dashboard",
+        )
 
         self.dataframe: pd.DataFrame | None = None
         self._build_ui()
@@ -43,28 +43,28 @@ class MTFPage(BasePage):
 
     def _build_progress(self) -> None:
         self.import_button = ctk.CTkButton(
-        self.header,
-        text="Import MTF File",
-        command=self.import_file,
-        width=160,
-    )
+            self.header,
+            text="Import MTF File",
+            command=self.import_file,
+            width=160,
+        )
         self.import_button.grid(
-        row=0,
-        column=2,
-        padx=(10, 0),
-    )
+            row=0,
+            column=2,
+            padx=(10, 0),
+        )
 
         self.progress = ProgressWidget(
-        self,
-        title="Import Progress",
-    )
+            self,
+            title="Import Progress",
+        )
         self.progress.grid(
-        row=1,
-        column=0,
-        sticky="ew",
-        padx=20,
-        pady=(0, 10),
-    )
+            row=1,
+            column=0,
+            sticky="ew",
+            padx=20,
+            pady=(0, 10),
+        )
 
     def _build_cards(self) -> None:
         cards_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -91,39 +91,27 @@ class MTFPage(BasePage):
             title="Total MTM",
             value="₹0.00",
         )
-        self.mtm_card.grid(row=0, column=3, sticky="ew", padx=(10, 0))
+        self.mtm_card.grid(row=0, column=3, sticky="ew", padx=10)
 
         self.margin_card = DashboardCard(
-        cards_frame,
-        title="Margin Used",
-        value="₹0.00",
+            cards_frame,
+            title="Margin Used",
+            value="₹0.00",
         )
-
-        self.margin_card.grid(
-        row=0,
-        column=4,
-        sticky="ew",
-        padx=10,
-        )
+        self.margin_card.grid(row=0, column=4, sticky="ew", padx=10)
 
         self.risk_card = DashboardCard(
-        cards_frame,
-        title="Risk Level",
-        value="LOW",
+            cards_frame,
+            title="Risk Level",
+            value="LOW",
         )
-
-        self.risk_card.grid(
-        row=0,
-        column=5,
-        sticky="ew",
-        padx=(10, 0),
-        )
+        self.risk_card.grid(row=0, column=5, sticky="ew", padx=(10, 0))
 
     def _build_analytics_area(self) -> None:
         analytics_frame = ctk.CTkFrame(self, fg_color="transparent")
         analytics_frame.grid(row=3, column=0, sticky="ew", padx=20, pady=10)
 
-        analytics_frame.grid_columnconfigure(0, weight=2)
+        analytics_frame.grid_columnconfigure(0, weight=1)
         analytics_frame.grid_columnconfigure(1, weight=1)
 
         self.exposure_chart = ChartWidget(
@@ -138,11 +126,11 @@ class MTFPage(BasePage):
             pady=(0, 10),
         )
 
-        self.top_exposure_table = MiniTable(
+        self.margin_chart = ChartWidget(
             analytics_frame,
-            title="Top Exposure Clients",
+            title="Margin Distribution",
         )
-        self.top_exposure_table.grid(
+        self.margin_chart.grid(
             row=0,
             column=1,
             sticky="nsew",
@@ -150,16 +138,16 @@ class MTFPage(BasePage):
             pady=(0, 10),
         )
 
-        self.activity_log = ActivityLog(
+        self.top_exposure_table = MiniTable(
             analytics_frame,
-            height=150,
+            title="Top Exposure Clients",
         )
-        self.activity_log.grid(
+        self.top_exposure_table.grid(
             row=1,
             column=0,
             sticky="nsew",
             padx=(0, 10),
-            pady=(10, 0),
+            pady=10,
         )
 
         self.gainers_table = MiniTable(
@@ -168,6 +156,30 @@ class MTFPage(BasePage):
         )
         self.gainers_table.grid(
             row=1,
+            column=1,
+            sticky="nsew",
+            padx=(10, 0),
+            pady=10,
+        )
+
+        self.activity_log = ActivityLog(
+            analytics_frame,
+            height=150,
+        )
+        self.activity_log.grid(
+            row=2,
+            column=0,
+            sticky="nsew",
+            padx=(0, 10),
+            pady=(10, 0),
+        )
+
+        self.losers_table = MiniTable(
+            analytics_frame,
+            title="Top MTM Losers",
+        )
+        self.losers_table.grid(
+            row=2,
             column=1,
             sticky="nsew",
             padx=(10, 0),
@@ -226,8 +238,10 @@ class MTFPage(BasePage):
             self.activity_log.success("Updating charts and tables...")
             self.progress.update_progress(0.80, "Updating analytics")
             self._refresh_chart(dataframe)
+            self._refresh_margin_chart(dataframe)
             self._refresh_top_exposure_table(dataframe)
             self._refresh_gainers_table(dataframe)
+            self._refresh_losers_table(dataframe)
 
             self.activity_log.success("Loading full MTF data...")
             self._refresh_result_table(dataframe)
@@ -243,47 +257,32 @@ class MTFPage(BasePage):
             messagebox.showerror("MTF Import Error", str(error))
 
     def _refresh_dashboard(self, dataframe: pd.DataFrame) -> None:
-         summary = MTFService.calculate_summary(dataframe)
-         risk = MTFService.risk_summary(dataframe)
+        summary = MTFService.calculate_summary(dataframe)
+        risk = MTFService.risk_summary(dataframe)
 
-         self._update_card(
-         self.clients_card,
-         str(summary["clients"]),
+        self._update_card(self.clients_card, str(summary["clients"]))
+        self._update_card(self.positions_card, str(summary["positions"]))
+        self._update_card(
+            self.buy_value_card,
+            self._format_currency(summary["buy_value"]),
+        )
+        self._update_card(
+            self.mtm_card,
+            self._format_currency(summary["total_mtm"]),
+        )
+        self._update_card(
+            self.margin_card,
+            self._format_currency(summary["margin"]),
         )
 
-         self._update_card(
-         self.positions_card,
-         str(summary["positions"]),
-        )
+        if risk["high"] > 0:
+            level = "HIGH"
+        elif risk["medium"] > 0:
+            level = "MEDIUM"
+        else:
+            level = "LOW"
 
-         self._update_card(
-         self.buy_value_card,
-         self._format_currency(summary["buy_value"]),
-        ) 
-
-         self._update_card(
-         self.mtm_card,
-         self._format_currency(summary["total_mtm"]),
-        )
-
-         self._update_card(
-         self.margin_card,
-         self._format_currency(summary["margin"]),
-        )
-
-         if risk["high"] > 0:
-          level = "HIGH"
-
-         elif risk["medium"] > 0:
-          level = "MEDIUM"
-
-         else:
-          level = "LOW"
-
-         self._update_card(
-         self.risk_card,
-         level,
-        )
+        self._update_card(self.risk_card, level)
 
     def _refresh_chart(self, dataframe: pd.DataFrame) -> None:
         chart_data = MTFService.symbol_exposure(dataframe)
@@ -309,6 +308,24 @@ class MTFPage(BasePage):
             ylabel="Exposure",
         )
 
+    def _refresh_margin_chart(self, dataframe: pd.DataFrame) -> None:
+        chart_data = MTFService.margin_distribution(dataframe)
+
+        if chart_data is None or chart_data.empty:
+            self.margin_chart.clear()
+            return
+
+        label_column = chart_data.columns[0]
+        value_column = chart_data.columns[-1]
+
+        self.margin_chart.plot_bar(
+            labels=chart_data[label_column].astype(str).tolist(),
+            values=chart_data[value_column].astype(float).tolist(),
+            title="Margin Distribution",
+            xlabel="Range",
+            ylabel="Clients",
+        )
+
     def _refresh_top_exposure_table(self, dataframe: pd.DataFrame) -> None:
         table_data = MTFService.top_exposure(dataframe)
 
@@ -323,6 +340,15 @@ class MTFPage(BasePage):
 
         self._load_mini_table(
             table=self.gainers_table,
+            dataframe=table_data,
+            preferred_columns=["AccountId", "Symbol", "MarkToMarket"],
+        )
+
+    def _refresh_losers_table(self, dataframe: pd.DataFrame) -> None:
+        table_data = MTFService.top_mtm_losers(dataframe)
+
+        self._load_mini_table(
+            table=self.losers_table,
             dataframe=table_data,
             preferred_columns=["AccountId", "Symbol", "MarkToMarket"],
         )
