@@ -10,6 +10,7 @@ from tkinter import filedialog, messagebox
 import customtkinter as ctk
 import pandas as pd
 
+from desktop.base_page import BasePage
 from core.services.mtf_service import MTFService
 from desktop.widgets.activity_log import ActivityLog
 from desktop.widgets.chart_widget import ChartWidget
@@ -19,11 +20,14 @@ from desktop.widgets.progress_widget import ProgressWidget
 from desktop.widgets.result_table import ResultTable
 
 
-class MTFPage(ctk.CTkFrame):
+class MTFPage(BasePage):
     """MTF Analyzer page."""
 
     def __init__(self, master):
-        super().__init__(master)
+        super().__init__(
+        master,
+        title="MTF Risk Dashboard",
+    )
 
         self.dataframe: pd.DataFrame | None = None
         self._build_ui()
@@ -32,52 +36,41 @@ class MTFPage(ctk.CTkFrame):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(4, weight=1)
 
-        self._build_header()
         self._build_progress()
         self._build_cards()
         self._build_analytics_area()
         self._build_result_table()
 
-    def _build_header(self) -> None:
-        header = ctk.CTkFrame(self, fg_color="transparent")
-        header.grid(row=0, column=0, sticky="ew", padx=20, pady=(20, 10))
-        header.grid_columnconfigure(1, weight=1)
-
-        title = ctk.CTkLabel(
-            header,
-            text="MTF Analyzer",
-            font=ctk.CTkFont(size=24, weight="bold"),
-        )
-        title.grid(row=0, column=0, sticky="w")
-
-        self.status_label = ctk.CTkLabel(
-            header,
-            text="No file imported",
-            font=ctk.CTkFont(size=12),
-            text_color="gray",
-        )
-        self.status_label.grid(row=0, column=1, sticky="e", padx=10)
-
-        import_button = ctk.CTkButton(
-            header,
-            text="Import MTF File",
-            command=self.import_file,
-            width=160,
-        )
-        import_button.grid(row=0, column=2, sticky="e")
-
     def _build_progress(self) -> None:
+        self.import_button = ctk.CTkButton(
+        self.header,
+        text="Import MTF File",
+        command=self.import_file,
+        width=160,
+    )
+        self.import_button.grid(
+        row=0,
+        column=2,
+        padx=(10, 0),
+    )
+
         self.progress = ProgressWidget(
-            self,
-            title="Import Progress",
-        )
-        self.progress.grid(row=1, column=0, sticky="ew", padx=20, pady=(0, 10))
+        self,
+        title="Import Progress",
+    )
+        self.progress.grid(
+        row=1,
+        column=0,
+        sticky="ew",
+        padx=20,
+        pady=(0, 10),
+    )
 
     def _build_cards(self) -> None:
         cards_frame = ctk.CTkFrame(self, fg_color="transparent")
         cards_frame.grid(row=2, column=0, sticky="ew", padx=20, pady=10)
 
-        for column in range(4):
+        for column in range(6):
             cards_frame.grid_columnconfigure(column, weight=1)
 
         self.clients_card = DashboardCard(cards_frame, title="Clients", value="0")
@@ -99,6 +92,32 @@ class MTFPage(ctk.CTkFrame):
             value="₹0.00",
         )
         self.mtm_card.grid(row=0, column=3, sticky="ew", padx=(10, 0))
+
+        self.margin_card = DashboardCard(
+        cards_frame,
+        title="Margin Used",
+        value="₹0.00",
+        )
+
+        self.margin_card.grid(
+        row=0,
+        column=4,
+        sticky="ew",
+        padx=10,
+        )
+
+        self.risk_card = DashboardCard(
+        cards_frame,
+        title="Risk Level",
+        value="LOW",
+        )
+
+        self.risk_card.grid(
+        row=0,
+        column=5,
+        sticky="ew",
+        padx=(10, 0),
+        )
 
     def _build_analytics_area(self) -> None:
         analytics_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -224,17 +243,46 @@ class MTFPage(ctk.CTkFrame):
             messagebox.showerror("MTF Import Error", str(error))
 
     def _refresh_dashboard(self, dataframe: pd.DataFrame) -> None:
-        summary = MTFService.calculate_summary(dataframe)
+         summary = MTFService.calculate_summary(dataframe)
+         risk = MTFService.risk_summary(dataframe)
 
-        self._update_card(self.clients_card, str(summary.get("clients", 0)))
-        self._update_card(self.positions_card, str(summary.get("positions", 0)))
-        self._update_card(
-            self.buy_value_card,
-            self._format_currency(summary.get("buy_value", 0)),
+         self._update_card(
+         self.clients_card,
+         str(summary["clients"]),
         )
-        self._update_card(
-            self.mtm_card,
-            self._format_currency(summary.get("total_mtm", 0)),
+
+         self._update_card(
+         self.positions_card,
+         str(summary["positions"]),
+        )
+
+         self._update_card(
+         self.buy_value_card,
+         self._format_currency(summary["buy_value"]),
+        ) 
+
+         self._update_card(
+         self.mtm_card,
+         self._format_currency(summary["total_mtm"]),
+        )
+
+         self._update_card(
+         self.margin_card,
+         self._format_currency(summary["margin"]),
+        )
+
+         if risk["high"] > 0:
+          level = "HIGH"
+
+         elif risk["medium"] > 0:
+          level = "MEDIUM"
+
+         else:
+          level = "LOW"
+
+         self._update_card(
+         self.risk_card,
+         level,
         )
 
     def _refresh_chart(self, dataframe: pd.DataFrame) -> None:
