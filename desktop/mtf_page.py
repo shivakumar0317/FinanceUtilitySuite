@@ -5,6 +5,8 @@ MTF Analyzer Page
 
 from __future__ import annotations
 
+from datetime import datetime
+from pathlib import Path
 from tkinter import filedialog, messagebox
 
 import customtkinter as ctk
@@ -23,6 +25,8 @@ from desktop.widgets.result_table import ResultTable
 class MTFPage(BasePage):
     """MTF Analyzer page."""
 
+    SEARCH_COLUMNS = ("AccountId", "Symbol")
+
     def __init__(self, master):
         super().__init__(
             master,
@@ -30,14 +34,18 @@ class MTFPage(BasePage):
         )
 
         self.dataframe: pd.DataFrame | None = None
+        self.filtered_dataframe: pd.DataFrame | None = None
+        self._last_file_path: str | None = None
+
         self._build_ui()
 
     def _build_ui(self) -> None:
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(4, weight=1)
+        self.grid_rowconfigure(5, weight=1)
 
         self._build_progress()
         self._build_cards()
+        self._build_toolbar()
         self._build_analytics_area()
         self._build_result_table()
 
@@ -107,9 +115,56 @@ class MTFPage(BasePage):
         )
         self.risk_card.grid(row=0, column=5, sticky="ew", padx=(10, 0))
 
+    def _build_toolbar(self) -> None:
+        toolbar = ctk.CTkFrame(self)
+        toolbar.grid(row=3, column=0, sticky="ew", padx=20, pady=(0, 10))
+
+        toolbar.grid_columnconfigure(1, weight=1)
+
+        search_label = ctk.CTkLabel(
+            toolbar,
+            text="Search Client / Symbol",
+            font=ctk.CTkFont(size=13, weight="bold"),
+        )
+        search_label.grid(row=0, column=0, sticky="w", padx=(12, 8), pady=12)
+
+        self.search_var = ctk.StringVar()
+        self.search_entry = ctk.CTkEntry(
+            toolbar,
+            textvariable=self.search_var,
+            placeholder_text="Type AccountId or Symbol...",
+        )
+        self.search_entry.grid(row=0, column=1, sticky="ew", padx=(0, 12), pady=12)
+        self.search_entry.bind("<KeyRelease>", self._on_search)
+
+        self.refresh_button = ctk.CTkButton(
+            toolbar,
+            text="Refresh",
+            command=self.refresh_dashboard,
+            width=110,
+        )
+        self.refresh_button.grid(row=0, column=2, padx=(0, 10), pady=12)
+
+        self.export_excel_button = ctk.CTkButton(
+            toolbar,
+            text="Export Excel",
+            command=self.export_excel,
+            width=120,
+        )
+        self.export_excel_button.grid(row=0, column=3, padx=(0, 10), pady=12)
+
+        self.export_pdf_button = ctk.CTkButton(
+            toolbar,
+            text="Export PDF",
+            command=self.export_pdf,
+            width=110,
+            state="disabled",
+        )
+        self.export_pdf_button.grid(row=0, column=4, padx=(0, 12), pady=12)
+
     def _build_analytics_area(self) -> None:
         analytics_frame = ctk.CTkFrame(self, fg_color="transparent")
-        analytics_frame.grid(row=3, column=0, sticky="ew", padx=20, pady=10)
+        analytics_frame.grid(row=4, column=0, sticky="ew", padx=20, pady=10)
 
         analytics_frame.grid_columnconfigure(0, weight=1)
         analytics_frame.grid_columnconfigure(1, weight=1)
@@ -188,16 +243,16 @@ class MTFPage(BasePage):
 
     def _build_result_table(self) -> None:
         table_frame = ctk.CTkFrame(self)
-        table_frame.grid(row=4, column=0, sticky="nsew", padx=20, pady=(10, 20))
+        table_frame.grid(row=5, column=0, sticky="nsew", padx=20, pady=(10, 20))
         table_frame.grid_columnconfigure(0, weight=1)
         table_frame.grid_rowconfigure(1, weight=1)
 
-        title = ctk.CTkLabel(
+        self.table_title = ctk.CTkLabel(
             table_frame,
             text="Full MTF Data",
             font=ctk.CTkFont(size=16, weight="bold"),
         )
-        title.grid(row=0, column=0, sticky="w", padx=12, pady=(10, 5))
+        self.table_title.grid(row=0, column=0, sticky="w", padx=12, pady=(10, 5))
 
         self.result_table = ResultTable(table_frame)
         self.result_table.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
@@ -216,6 +271,7 @@ class MTFPage(BasePage):
             return
 
         try:
+            self._set_busy_state(True)
             self.progress.reset()
             self.activity_log.clear()
 
@@ -230,24 +286,20 @@ class MTFPage(BasePage):
             MTFService.validate_dataframe(dataframe)
 
             self.dataframe = dataframe
+            self.filtered_dataframe = dataframe.copy()
+            self._last_file_path = file_path
+            self.search_var.set("")
 
             self.activity_log.success("Updating dashboard...")
             self.progress.update_progress(0.60, "Updating dashboard")
-            self._refresh_dashboard(dataframe)
-
-            self.activity_log.success("Updating charts and tables...")
-            self.progress.update_progress(0.80, "Updating analytics")
-            self._refresh_chart(dataframe)
-            self._refresh_margin_chart(dataframe)
-            self._refresh_top_exposure_table(dataframe)
-            self._refresh_gainers_table(dataframe)
-            self._refresh_losers_table(dataframe)
+            self._refresh_all(dataframe)
 
             self.activity_log.success("Loading full MTF data...")
             self._refresh_result_table(dataframe)
 
             self.activity_log.success("Import completed")
             self.progress.complete("Ready")
+            self._update_table_title(dataframe)
             self.status_label.configure(text="MTF file imported successfully")
 
         except Exception as error:
@@ -255,6 +307,121 @@ class MTFPage(BasePage):
             self.progress.update_progress(0, "Import failed")
             self.activity_log.error(str(error))
             messagebox.showerror("MTF Import Error", str(error))
+        finally:
+            self._set_busy_state(False)
+
+    def refresh_dashboard(self) -> None:
+        if self.dataframe is None or self.dataframe.empty:
+            messagebox.showinfo("Refresh Dashboard", "Please import an MTF file first.")
+            return
+
+        self.search_var.set("")
+        self.filtered_dataframe = self.dataframe.copy()
+
+        self._refresh_all(self.filtered_dataframe)
+        self._refresh_result_table(self.filtered_dataframe)
+        self._update_table_title(self.filtered_dataframe)
+        self.status_label.configure(text="Dashboard refreshed")
+
+        if hasattr(self, "activity_log"):
+            self.activity_log.success("Dashboard refreshed")
+
+    def export_excel(self) -> None:
+        export_data = self._get_active_dataframe()
+
+        if export_data is None or export_data.empty:
+            messagebox.showinfo("Export Excel", "No data available to export.")
+            return
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        default_name = f"MTF_Risk_Dashboard_{timestamp}.xlsx"
+
+        file_path = filedialog.asksaveasfilename(
+            title="Export MTF Data",
+            defaultextension=".xlsx",
+            initialfile=default_name,
+            filetypes=[
+                ("Excel Files", "*.xlsx"),
+                ("All Files", "*.*"),
+            ],
+        )
+
+        if not file_path:
+            return
+
+        try:
+            self._set_busy_state(True)
+            output_path = Path(file_path)
+            export_data.to_excel(output_path, index=False)
+
+            self.status_label.configure(text=f"Exported: {output_path.name}")
+            self.activity_log.success(f"Exported Excel file: {output_path.name}")
+            messagebox.showinfo(
+                "Export Complete",
+                f"MTF data exported successfully.\n\n{output_path}",
+            )
+
+        except Exception as error:
+            self.status_label.configure(text="Export failed")
+            self.activity_log.error(str(error))
+            messagebox.showerror("Export Error", str(error))
+        finally:
+            self._set_busy_state(False)
+
+    def export_pdf(self) -> None:
+        messagebox.showinfo(
+            "Export PDF",
+            "PDF export will be connected in a future version.",
+        )
+
+    def _on_search(self, _event=None) -> None:
+        if self.dataframe is None or self.dataframe.empty:
+            return
+
+        filtered = self._filter_dataframe(self.search_var.get())
+        self.filtered_dataframe = filtered
+
+        self._refresh_result_table(filtered)
+        self._update_table_title(filtered)
+
+        if filtered.empty:
+            self.status_label.configure(text="No matching records found")
+            return
+
+        self.status_label.configure(text=f"Showing {len(filtered):,} matching records")
+
+    def _filter_dataframe(self, search_text: str) -> pd.DataFrame:
+        if self.dataframe is None:
+            return pd.DataFrame()
+
+        query = search_text.strip()
+
+        if not query:
+            return self.dataframe.copy()
+
+        searchable_columns = [
+            column for column in self.SEARCH_COLUMNS if column in self.dataframe.columns
+        ]
+
+        if not searchable_columns:
+            return self.dataframe.copy()
+
+        mask = pd.Series(False, index=self.dataframe.index)
+
+        for column in searchable_columns:
+            column_values = self.dataframe[column].fillna("").astype(str)
+            mask |= column_values.str.contains(query, case=False, na=False)
+
+        return self.dataframe.loc[mask].copy()
+
+    def _refresh_all(self, dataframe: pd.DataFrame) -> None:
+        self.activity_log.success("Updating charts and tables...")
+        self._refresh_dashboard(dataframe)
+        self._refresh_chart(dataframe)
+        self._refresh_margin_chart(dataframe)
+        self._refresh_top_exposure_table(dataframe)
+        self._refresh_gainers_table(dataframe)
+        self._refresh_losers_table(dataframe)
 
     def _refresh_dashboard(self, dataframe: pd.DataFrame) -> None:
         summary = MTFService.calculate_summary(dataframe)
@@ -380,6 +547,36 @@ class MTFPage(BasePage):
 
         table.set_headers(display_columns)
         table.set_data(rows)
+
+    def _get_active_dataframe(self) -> pd.DataFrame | None:
+        if self.filtered_dataframe is not None:
+            return self.filtered_dataframe
+
+        return self.dataframe
+
+    def _update_table_title(self, dataframe: pd.DataFrame | None) -> None:
+        if dataframe is None:
+            self.table_title.configure(text="Full MTF Data")
+            return
+
+        total_rows = len(self.dataframe) if self.dataframe is not None else len(dataframe)
+        visible_rows = len(dataframe)
+
+        if visible_rows == total_rows:
+            title = f"Full MTF Data ({total_rows:,} records)"
+        else:
+            title = f"Filtered MTF Data ({visible_rows:,} of {total_rows:,} records)"
+
+        self.table_title.configure(text=title)
+
+    def _set_busy_state(self, is_busy: bool) -> None:
+        cursor = "watch" if is_busy else ""
+
+        try:
+            self.configure(cursor=cursor)
+            self.update_idletasks()
+        except Exception:
+            return
 
     def _update_card(self, card: DashboardCard, value: str) -> None:
         if hasattr(card, "set_value"):
