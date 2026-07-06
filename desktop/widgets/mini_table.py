@@ -6,7 +6,7 @@ Compact reusable table used for Top Gainers, Top Losers,
 watchlists, risk lists, exposure summaries and small datasets.
 
 Author : Shiva Kumar
-Version: 0.95
+Version: 0.96
 """
 
 from __future__ import annotations
@@ -49,10 +49,6 @@ class MiniTable(ctk.CTkFrame):
 
         self._build_ui()
 
-    # -----------------------------------------------------
-    # UI
-    # -----------------------------------------------------
-
     def _build_ui(self) -> None:
         """Build mini table UI."""
 
@@ -74,6 +70,13 @@ class MiniTable(ctk.CTkFrame):
         )
 
         self._configure_style()
+        self._create_tree()
+
+        if self.on_double_click is not None and self.tree is not None:
+            self.tree.bind("<Double-1>", self._handle_double_click)
+
+    def _create_tree(self) -> None:
+        """Create treeview using current columns."""
 
         column_ids = [column[0] for column in self.columns]
 
@@ -97,6 +100,8 @@ class MiniTable(ctk.CTkFrame):
         self.tree.tag_configure("positive", foreground=Theme.SUCCESS)
         self.tree.tag_configure("negative", foreground=Theme.ERROR)
         self.tree.tag_configure("neutral", foreground=Theme.TEXT_SECONDARY)
+        self.tree.tag_configure("oddrow", background="#F7F7F7")
+        self.tree.tag_configure("evenrow", background="#FFFFFF")
 
         scrollbar = ttk.Scrollbar(
             self,
@@ -128,9 +133,6 @@ class MiniTable(ctk.CTkFrame):
             text_color=Theme.TEXT_SECONDARY,
         )
 
-        if self.on_double_click is not None:
-            self.tree.bind("<Double-1>", self._handle_double_click)
-
     def _configure_style(self) -> None:
         """Configure ttk Treeview style."""
 
@@ -161,17 +163,44 @@ class MiniTable(ctk.CTkFrame):
         for row in self.tree.get_children():
             self.tree.delete(row)
 
-    def load_data(self, rows: Iterable[tuple]) -> None:
-        """
-        Load rows into table.
+    def set_headers(self, headers: Iterable[str]) -> None:
+        """Update table headers dynamically."""
 
-        Example
-        -------
-        [
-            ("RELIANCE", 2875.50, 2.51),
-            ("INFY", 1554.00, -1.24),
-        ]
-        """
+        headers = list(headers)
+
+        if self.tree is None:
+            return
+
+        self.columns = tuple(
+            (
+                self._normalize_column_id(header),
+                header,
+                self._guess_width(header),
+                self._guess_anchor(header),
+            )
+            for header in headers
+        )
+
+        column_ids = [column[0] for column in self.columns]
+
+        self.tree.configure(columns=column_ids)
+
+        for column_id, heading, width, anchor in self.columns:
+            self.tree.heading(column_id, text=heading)
+            self.tree.column(
+                column_id,
+                width=width,
+                anchor=anchor,
+                stretch=True,
+            )
+
+    def set_data(self, rows: Iterable[Iterable]) -> None:
+        """Backward-compatible method for loading data."""
+
+        self.load_data(rows)
+
+    def load_data(self, rows: Iterable[Iterable]) -> None:
+        """Load rows into table."""
 
         if self.tree is None:
             return
@@ -180,15 +209,16 @@ class MiniTable(ctk.CTkFrame):
 
         row_count = 0
 
-        for row in rows:
-            values = self._format_row(row)
-            tag = self._get_row_tag(row)
+        for index, row in enumerate(rows):
+            row_tuple = tuple(row)
+            values = self._format_row(row_tuple)
+            tags = self._get_row_tags(row_tuple, index)
 
             self.tree.insert(
                 "",
                 "end",
                 values=values,
-                tags=(tag,),
+                tags=tags,
             )
 
             row_count += 1
@@ -210,18 +240,36 @@ class MiniTable(ctk.CTkFrame):
     def _format_row(self, row: tuple) -> tuple:
         """Format row values for display."""
 
-        if len(row) == 3:
-            symbol, price, change = row
+        return tuple(self._format_value(value) for value in row)
 
-            return (
-                symbol,
-                f"₹{float(price):,.2f}",
-                f"{float(change):.2f}%",
-            )
+    def _format_value(self, value: object) -> str:
+        """Format individual cell value."""
 
-        return tuple(str(value) for value in row)
+        if value is None:
+            return ""
 
-    def _get_row_tag(self, row: tuple) -> str:
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            return str(value)
+
+        if abs(number) >= 1000:
+            return f"{number:,.2f}"
+
+        if number % 1 == 0:
+            return f"{number:,.0f}"
+
+        return f"{number:.2f}"
+
+    def _get_row_tags(self, row: tuple, index: int) -> tuple[str, ...]:
+        """Return row styling tags."""
+
+        zebra_tag = "evenrow" if index % 2 == 0 else "oddrow"
+        value_tag = self._get_value_tag(row)
+
+        return zebra_tag, value_tag
+
+    def _get_value_tag(self, row: tuple) -> str:
         """Return row color tag based on final numeric value."""
 
         if not row:
@@ -270,3 +318,56 @@ class MiniTable(ctk.CTkFrame):
 
         values = self.tree.item(selected[0], "values")
         self.on_double_click(values)
+
+    def _normalize_column_id(self, header: str) -> str:
+        """Convert header text into safe treeview column id."""
+
+        return (
+            str(header)
+            .strip()
+            .lower()
+            .replace(" ", "_")
+            .replace("-", "_")
+            .replace("/", "_")
+        )
+
+    def _guess_width(self, header: str) -> int:
+        """Guess column width from header name."""
+
+        header_upper = str(header).upper()
+
+        if "ACCOUNT" in header_upper or "CLIENT" in header_upper:
+            return 140
+
+        if "SYMBOL" in header_upper:
+            return 120
+
+        if "VALUE" in header_upper or "MARGIN" in header_upper:
+            return 130
+
+        if "MTM" in header_upper or "MARKTOMARKET" in header_upper:
+            return 130
+
+        return 110
+
+    def _guess_anchor(self, header: str) -> str:
+        """Guess alignment from header name."""
+
+        header_upper = str(header).upper()
+
+        numeric_words = [
+            "VALUE",
+            "MARGIN",
+            "MTM",
+            "QTY",
+            "PRICE",
+            "PERCENT",
+            "VAR",
+            "SCORE",
+            "POSITIONS",
+        ]
+
+        if any(word in header_upper for word in numeric_words):
+            return "e"
+
+        return "center"
