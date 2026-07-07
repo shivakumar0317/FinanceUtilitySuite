@@ -6,7 +6,7 @@ Compact reusable table used for Top Gainers, Top Losers,
 watchlists, risk lists, exposure summaries and small datasets.
 
 Author : Shiva Kumar
-Version: 0.96
+Version: 1.00
 """
 
 from __future__ import annotations
@@ -36,7 +36,11 @@ class MiniTable(ctk.CTkFrame):
         height: int = 8,
         on_double_click: Callable | None = None,
     ):
-        super().__init__(master, corner_radius=Theme.BORDER_RADIUS)
+        super().__init__(
+            master,
+            corner_radius=Theme.BORDER_RADIUS,
+            border_width=1,
+        )
 
         self.title = title
         self.columns = tuple(columns or self.DEFAULT_COLUMNS)
@@ -54,6 +58,8 @@ class MiniTable(ctk.CTkFrame):
 
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1)
+
+        self.grid_propagate(False)
 
         self.title_label = ctk.CTkLabel(
             self,
@@ -129,7 +135,7 @@ class MiniTable(ctk.CTkFrame):
         self.empty_label = ctk.CTkLabel(
             self,
             text="No data available",
-            font=Theme.FONT_SMALL,
+            font=Theme.FONT_SUBHEADING,
             text_color=Theme.TEXT_SECONDARY,
         )
 
@@ -147,7 +153,7 @@ class MiniTable(ctk.CTkFrame):
 
         style.configure(
             "Mini.Treeview.Heading",
-            font=Theme.FONT_SMALL,
+            font=Theme.FONT_SUBHEADING,
         )
 
     # -----------------------------------------------------
@@ -371,3 +377,9 @@ class MiniTable(ctk.CTkFrame):
             return "e"
 
         return "center"
+
+    def set_height(self, rows: int) -> None:
+        """Update visible row count."""
+        self.height = rows
+        if self.tree is not None:
+            self.tree.configure(height=rows)
