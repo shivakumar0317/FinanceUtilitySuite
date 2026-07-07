@@ -5,7 +5,7 @@ Base Page
 Reusable base class for all application pages.
 
 Author : Shiva Kumar
-Version : 0.96
+Version : 0.99
 """
 
 from __future__ import annotations
@@ -22,16 +22,16 @@ class BasePage(ctk.CTkFrame):
         self.page_title = title
 
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(4, weight=1)
+        self.grid_rowconfigure(1, weight=1)
 
         self._create_header()
+        self._create_content_area()
 
     # --------------------------------------------------
     # Header
     # --------------------------------------------------
 
     def _create_header(self) -> None:
-
         self.header = ctk.CTkFrame(
             self,
             fg_color="transparent",
@@ -74,25 +74,30 @@ class BasePage(ctk.CTkFrame):
         )
 
     # --------------------------------------------------
+    # Scrollable Content Area
+    # --------------------------------------------------
+
+    def _create_content_area(self) -> None:
+        self.content = ctk.CTkScrollableFrame(
+            self,
+            fg_color="transparent",
+        )
+
+        self.content.grid(
+            row=1,
+            column=0,
+            sticky="nsew",
+        )
+
+        self.content.grid_columnconfigure(0, weight=1)
+
+    # --------------------------------------------------
     # Public API
     # --------------------------------------------------
 
-    def set_status(
-        self,
-        message: str,
-    ) -> None:
+    def set_status(self, message: str) -> None:
+        self.status_label.configure(text=message)
 
-        self.status_label.configure(
-            text=message,
-        )
-
-    def set_title(
-        self,
-        title: str,
-    ) -> None:
-
+    def set_title(self, title: str) -> None:
         self.page_title = title
-
-        self.title_label.configure(
-            text=title,
-        )
+        self.title_label.configure(text=title)

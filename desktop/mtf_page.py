@@ -40,8 +40,8 @@ class MTFPage(BasePage):
         self._build_ui()
 
     def _build_ui(self) -> None:
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(5, weight=1)
+        self.content.grid_columnconfigure(0, weight=1)
+        self.content.grid_rowconfigure(5, weight=1)
 
         self._build_progress()
         self._build_cards()
@@ -63,7 +63,7 @@ class MTFPage(BasePage):
         )
 
         self.progress = ProgressWidget(
-            self,
+            self.content,
             title="Import Progress",
         )
         self.progress.grid(
@@ -75,7 +75,7 @@ class MTFPage(BasePage):
         )
 
     def _build_cards(self) -> None:
-        cards_frame = ctk.CTkFrame(self, fg_color="transparent")
+        cards_frame = ctk.CTkFrame(self.content, fg_color="transparent")
         cards_frame.grid(row=2, column=0, sticky="ew", padx=20, pady=10)
 
         for column in range(6):
@@ -116,7 +116,7 @@ class MTFPage(BasePage):
         self.risk_card.grid(row=0, column=5, sticky="ew", padx=(10, 0))
 
     def _build_toolbar(self) -> None:
-        toolbar = ctk.CTkFrame(self)
+        toolbar = ctk.CTkFrame(self.content)
         toolbar.grid(row=3, column=0, sticky="ew", padx=20, pady=(0, 10))
 
         toolbar.grid_columnconfigure(1, weight=1)
@@ -163,7 +163,7 @@ class MTFPage(BasePage):
         self.export_pdf_button.grid(row=0, column=4, padx=(0, 12), pady=12)
 
     def _build_analytics_area(self) -> None:
-        analytics_frame = ctk.CTkFrame(self, fg_color="transparent")
+        analytics_frame = ctk.CTkFrame(self.content, fg_color="transparent")
         analytics_frame.grid(row=4, column=0, sticky="ew", padx=20, pady=10)
 
         analytics_frame.grid_columnconfigure(0, weight=1)
@@ -242,7 +242,7 @@ class MTFPage(BasePage):
         )
 
     def _build_result_table(self) -> None:
-        table_frame = ctk.CTkFrame(self)
+        table_frame = ctk.CTkFrame(self.content)
         table_frame.grid(row=5, column=0, sticky="nsew", padx=20, pady=(10, 20))
         table_frame.grid_columnconfigure(0, weight=1)
         table_frame.grid_rowconfigure(1, weight=1)
