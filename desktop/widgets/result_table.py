@@ -6,7 +6,7 @@ Professional reusable data table with sorting, zebra rows,
 context menu, copy support, status bar and detail window.
 
 Author : Shiva Kumar
-Version: 0.95
+Version: 1.00
 """
 
 from __future__ import annotations
@@ -42,7 +42,7 @@ class ResultTable(ctk.CTkFrame):
     )
 
     def __init__(self, master):
-        super().__init__(master, corner_radius=Theme.BORDER_RADIUS)
+        super().__init__(master, corner_radius=Theme.BORDER_RADIUS, border_width=1)
 
         self.dataframe: pd.DataFrame | None = None
         self.columns: list[str] = []
@@ -428,3 +428,23 @@ class ResultTable(ctk.CTkFrame):
             return float(numeric)
         except ValueError:
             return value.upper()
+
+
+    def auto_fit_columns(self) -> None:
+        """Auto fit columns based on content."""
+        for column in self.columns:
+            width=max(120,len(column)*12)
+            for item in self.tree.get_children()[:50]:
+                value=str(self.tree.set(item,column))
+                width=max(width,min(300,len(value)*8))
+            self.tree.column(column,width=width)
+
+    def copy_selected_cell(self)->None:
+        """Copy focused cell value."""
+        if not self.selected_item:
+            return
+        values=self.tree.item(self.selected_item,"values")
+        if values:
+            self.clipboard_clear()
+            self.clipboard_append(str(values[0]))
+            self.update()
