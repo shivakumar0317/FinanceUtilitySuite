@@ -1,6 +1,9 @@
 """
 Finance Utility Suite
 MTF Analyzer Page
+
+Author : Shiva Kumar
+Version: 0.99
 """
 
 from __future__ import annotations
@@ -25,6 +28,7 @@ from desktop.widgets.result_table import ResultTable
 class MTFPage(BasePage):
     """MTF Analyzer page."""
 
+    VERSION = "v0.99"
     SEARCH_COLUMNS = ("AccountId", "Symbol")
 
     def __init__(self, master):
@@ -36,18 +40,24 @@ class MTFPage(BasePage):
         self.dataframe: pd.DataFrame | None = None
         self.filtered_dataframe: pd.DataFrame | None = None
         self._last_file_path: str | None = None
+        self._last_refresh_time: datetime | None = None
 
         self._build_ui()
+        self._bind_shortcuts()
 
     def _build_ui(self) -> None:
         self.content.grid_columnconfigure(0, weight=1)
-        self.content.grid_rowconfigure(5, weight=1)
+        self.content.grid_rowconfigure(4, weight=1)
 
-        self._build_progress()
         self._build_cards()
         self._build_toolbar()
+        self._build_progress()
         self._build_analytics_area()
         self._build_result_table()
+        self._build_status_bar()
+
+        self.progress.grid_remove()
+        self._update_footer_status()
 
     def _build_progress(self) -> None:
         self.import_button = ctk.CTkButton(
@@ -67,16 +77,16 @@ class MTFPage(BasePage):
             title="Import Progress",
         )
         self.progress.grid(
-            row=1,
+            row=2,
             column=0,
             sticky="ew",
             padx=20,
-            pady=(0, 10),
+            pady=(0, 12),
         )
 
     def _build_cards(self) -> None:
         cards_frame = ctk.CTkFrame(self.content, fg_color="transparent")
-        cards_frame.grid(row=2, column=0, sticky="ew", padx=20, pady=10)
+        cards_frame.grid(row=0, column=0, sticky="ew", padx=20, pady=(5, 12))
 
         for column in range(6):
             cards_frame.grid_columnconfigure(column, weight=1)
@@ -117,7 +127,7 @@ class MTFPage(BasePage):
 
     def _build_toolbar(self) -> None:
         toolbar = ctk.CTkFrame(self.content)
-        toolbar.grid(row=3, column=0, sticky="ew", padx=20, pady=(0, 10))
+        toolbar.grid(row=1, column=0, sticky="ew", padx=20, pady=(0, 12))
 
         toolbar.grid_columnconfigure(1, weight=1)
 
@@ -133,6 +143,7 @@ class MTFPage(BasePage):
             toolbar,
             textvariable=self.search_var,
             placeholder_text="Type AccountId or Symbol...",
+            height=34,
         )
         self.search_entry.grid(row=0, column=1, sticky="ew", padx=(0, 12), pady=12)
         self.search_entry.bind("<KeyRelease>", self._on_search)
@@ -141,7 +152,8 @@ class MTFPage(BasePage):
             toolbar,
             text="Refresh",
             command=self.refresh_dashboard,
-            width=110,
+            width=115,
+            height=34,
         )
         self.refresh_button.grid(row=0, column=2, padx=(0, 10), pady=12)
 
@@ -149,7 +161,8 @@ class MTFPage(BasePage):
             toolbar,
             text="Export Excel",
             command=self.export_excel,
-            width=120,
+            width=130,
+            height=34,
         )
         self.export_excel_button.grid(row=0, column=3, padx=(0, 10), pady=12)
 
@@ -157,14 +170,15 @@ class MTFPage(BasePage):
             toolbar,
             text="Export PDF",
             command=self.export_pdf,
-            width=110,
+            width=115,
+            height=34,
             state="disabled",
         )
         self.export_pdf_button.grid(row=0, column=4, padx=(0, 12), pady=12)
 
     def _build_analytics_area(self) -> None:
         analytics_frame = ctk.CTkFrame(self.content, fg_color="transparent")
-        analytics_frame.grid(row=4, column=0, sticky="ew", padx=20, pady=10)
+        analytics_frame.grid(row=3, column=0, sticky="ew", padx=20, pady=(0, 12))
 
         analytics_frame.grid_columnconfigure(0, weight=1)
         analytics_frame.grid_columnconfigure(1, weight=1)
@@ -243,7 +257,7 @@ class MTFPage(BasePage):
 
     def _build_result_table(self) -> None:
         table_frame = ctk.CTkFrame(self.content)
-        table_frame.grid(row=5, column=0, sticky="nsew", padx=20, pady=(10, 20))
+        table_frame.grid(row=4, column=0, sticky="nsew", padx=20, pady=(0, 20))
         table_frame.grid_columnconfigure(0, weight=1)
         table_frame.grid_rowconfigure(1, weight=1)
 
@@ -256,6 +270,50 @@ class MTFPage(BasePage):
 
         self.result_table = ResultTable(table_frame)
         self.result_table.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
+
+
+    def _build_status_bar(self) -> None:
+        self.status_bar = ctk.CTkFrame(self, height=34)
+        self.status_bar.grid(row=2, column=0, sticky="ew", padx=20, pady=(0, 10))
+
+        for column in range(4):
+            self.status_bar.grid_columnconfigure(column, weight=1)
+
+        self.records_status = ctk.CTkLabel(
+            self.status_bar,
+            text="Records: 0",
+            anchor="w",
+        )
+        self.records_status.grid(row=0, column=0, sticky="w", padx=12, pady=6)
+
+        self.filtered_status = ctk.CTkLabel(
+            self.status_bar,
+            text="Filtered: 0",
+            anchor="w",
+        )
+        self.filtered_status.grid(row=0, column=1, sticky="w", padx=12, pady=6)
+
+        self.refresh_status = ctk.CTkLabel(
+            self.status_bar,
+            text="Last Refresh: -",
+            anchor="w",
+        )
+        self.refresh_status.grid(row=0, column=2, sticky="w", padx=12, pady=6)
+
+        self.version_status = ctk.CTkLabel(
+            self.status_bar,
+            text=f"Version: {self.VERSION}",
+            anchor="e",
+        )
+        self.version_status.grid(row=0, column=3, sticky="e", padx=12, pady=6)
+
+    def _bind_shortcuts(self) -> None:
+        root = self.winfo_toplevel()
+
+        root.bind("<F5>", self._on_refresh_shortcut)
+        root.bind("<Control-e>", self._on_export_shortcut)
+        root.bind("<Control-E>", self._on_export_shortcut)
+        root.bind("<Escape>", self._on_escape_shortcut)
 
     def import_file(self) -> None:
         file_path = filedialog.askopenfilename(
@@ -272,6 +330,7 @@ class MTFPage(BasePage):
 
         try:
             self._set_busy_state(True)
+            self._show_progress()
             self.progress.reset()
             self.activity_log.clear()
 
@@ -291,16 +350,21 @@ class MTFPage(BasePage):
             self.search_var.set("")
 
             self.activity_log.success("Updating dashboard...")
-            self.progress.update_progress(0.60, "Updating dashboard")
+            self.progress.update_progress(0.70, "Updating dashboard")
             self._refresh_all(dataframe)
 
             self.activity_log.success("Loading full MTF data...")
+            self.progress.update_progress(0.90, "Loading table")
             self._refresh_result_table(dataframe)
 
+            self._last_refresh_time = datetime.now()
             self.activity_log.success("Import completed")
             self.progress.complete("Ready")
             self._update_table_title(dataframe)
+            self._update_footer_status(dataframe)
             self.status_label.configure(text="MTF file imported successfully")
+            self.search_entry.focus_set()
+            self.after(900, self._hide_progress)
 
         except Exception as error:
             self.status_label.configure(text="Import failed")
@@ -317,10 +381,12 @@ class MTFPage(BasePage):
 
         self.search_var.set("")
         self.filtered_dataframe = self.dataframe.copy()
+        self._last_refresh_time = datetime.now()
 
         self._refresh_all(self.filtered_dataframe)
         self._refresh_result_table(self.filtered_dataframe)
         self._update_table_title(self.filtered_dataframe)
+        self._update_footer_status(self.filtered_dataframe)
         self.status_label.configure(text="Dashboard refreshed")
 
         if hasattr(self, "activity_log"):
@@ -351,15 +417,21 @@ class MTFPage(BasePage):
 
         try:
             self._set_busy_state(True)
+            self._show_progress()
+            self.progress.reset()
+            self.progress.update_progress(0.30, "Preparing export")
+
             output_path = Path(file_path)
             export_data.to_excel(output_path, index=False)
 
+            self.progress.update_progress(1.00, "Export complete")
             self.status_label.configure(text=f"Exported: {output_path.name}")
             self.activity_log.success(f"Exported Excel file: {output_path.name}")
             messagebox.showinfo(
                 "Export Complete",
                 f"MTF data exported successfully.\n\n{output_path}",
             )
+            self.after(700, self._hide_progress)
 
         except Exception as error:
             self.status_label.configure(text="Export failed")
@@ -383,6 +455,7 @@ class MTFPage(BasePage):
 
         self._refresh_result_table(filtered)
         self._update_table_title(filtered)
+        self._update_footer_status(filtered)
 
         if filtered.empty:
             self.status_label.configure(text="No matching records found")
@@ -548,6 +621,13 @@ class MTFPage(BasePage):
         table.set_headers(display_columns)
         table.set_data(rows)
 
+
+    def _show_progress(self) -> None:
+        self.progress.grid()
+
+    def _hide_progress(self) -> None:
+        self.progress.grid_remove()
+
     def _get_active_dataframe(self) -> pd.DataFrame | None:
         if self.filtered_dataframe is not None:
             return self.filtered_dataframe
@@ -569,14 +649,49 @@ class MTFPage(BasePage):
 
         self.table_title.configure(text=title)
 
+    def _update_footer_status(self, dataframe: pd.DataFrame | None = None) -> None:
+        total_records = len(self.dataframe) if self.dataframe is not None else 0
+        filtered_records = len(dataframe) if dataframe is not None else total_records
+
+        if self._last_refresh_time is None:
+            refresh_text = "Last Refresh: -"
+        else:
+            refresh_time = self._last_refresh_time.strftime("%d-%b-%Y %I:%M:%S %p")
+            refresh_text = f"Last Refresh: {refresh_time}"
+
+        self.records_status.configure(text=f"Records: {total_records:,}")
+        self.filtered_status.configure(text=f"Filtered: {filtered_records:,}")
+        self.refresh_status.configure(text=refresh_text)
+        self.version_status.configure(text=f"Version: {self.VERSION}")
+
     def _set_busy_state(self, is_busy: bool) -> None:
         cursor = "watch" if is_busy else ""
+        state = "disabled" if is_busy else "normal"
 
         try:
             self.configure(cursor=cursor)
+            self.refresh_button.configure(state=state)
+            self.export_excel_button.configure(state=state)
+
+            if is_busy:
+                self.search_entry.configure(state="disabled")
+            else:
+                self.search_entry.configure(state="normal")
+
             self.update_idletasks()
         except Exception:
             return
+
+    def _on_refresh_shortcut(self, _event=None) -> None:
+        self.refresh_dashboard()
+
+    def _on_export_shortcut(self, _event=None) -> None:
+        self.export_excel()
+
+    def _on_escape_shortcut(self, _event=None) -> None:
+        if hasattr(self, "search_var"):
+            self.search_var.set("")
+            self._on_search()
 
     def _update_card(self, card: DashboardCard, value: str) -> None:
         if hasattr(card, "set_value"):
