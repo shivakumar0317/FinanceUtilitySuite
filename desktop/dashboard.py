@@ -6,6 +6,7 @@ from desktop.sidebar import Sidebar
 from desktop.stock_page import StockPage
 from desktop.portfolio_page import PortfolioPage
 from desktop.mtf_page import MTFPage
+from desktop.windows.about_window import AboutWindow
 
 class Dashboard(ctk.CTk):
 
@@ -71,6 +72,11 @@ class Dashboard(ctk.CTk):
         self.clear_main()
         MTFPage(self.main).pack(fill="both", expand=True)
 
+       elif page == "about":
+        AboutWindow(self)
+        return
+
+
        else:
         self.clear_main()
 
@@ -81,3 +87,5 @@ class Dashboard(ctk.CTk):
         )
 
         label.pack(pady=30)
+
+        

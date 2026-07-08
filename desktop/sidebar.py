@@ -29,6 +29,7 @@ class Sidebar(ctk.CTkFrame):
             ("💰 Loan Calculator", "loan"),
             ("📄 Reports", "reports"),
             ("⚙ Settings", "settings"),
+            ("ℹ About", "about")
         ]
 
         for text, page in menu:
