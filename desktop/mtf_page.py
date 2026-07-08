@@ -23,6 +23,7 @@ from desktop.widgets.dashboard_card import DashboardCard
 from desktop.widgets.mini_table import MiniTable
 from desktop.widgets.progress_widget import ProgressWidget
 from desktop.widgets.result_table import ResultTable
+from desktop.theme import Theme
 
 
 class MTFPage(BasePage):
@@ -91,16 +92,17 @@ class MTFPage(BasePage):
         for column in range(6):
             cards_frame.grid_columnconfigure(column, weight=1)
 
-        self.clients_card = DashboardCard(cards_frame, title="Clients", value="0")
+        self.clients_card = DashboardCard(cards_frame, title="Clients", value="0", icon="👥")
         self.clients_card.grid(row=0, column=0, sticky="ew", padx=(0, 10))
 
-        self.positions_card = DashboardCard(cards_frame, title="Positions", value="0")
+        self.positions_card = DashboardCard(cards_frame, title="Positions", value="0", icon="💼")
         self.positions_card.grid(row=0, column=1, sticky="ew", padx=10)
 
         self.buy_value_card = DashboardCard(
             cards_frame,
             title="Buy Value",
             value="₹0.00",
+            icon="🛒",
         )
         self.buy_value_card.grid(row=0, column=2, sticky="ew", padx=10)
 
@@ -108,6 +110,7 @@ class MTFPage(BasePage):
             cards_frame,
             title="Total MTM",
             value="₹0.00",
+            icon="📈",
         )
         self.mtm_card.grid(row=0, column=3, sticky="ew", padx=10)
 
@@ -115,6 +118,7 @@ class MTFPage(BasePage):
             cards_frame,
             title="Margin Used",
             value="₹0.00",
+            icon="📊",
         )
         self.margin_card.grid(row=0, column=4, sticky="ew", padx=10)
 
@@ -122,6 +126,7 @@ class MTFPage(BasePage):
             cards_frame,
             title="Risk Level",
             value="LOW",
+            icon="🛡",
         )
         self.risk_card.grid(row=0, column=5, sticky="ew", padx=(10, 0))
 
@@ -499,6 +504,14 @@ class MTFPage(BasePage):
     def _refresh_dashboard(self, dataframe: pd.DataFrame) -> None:
         summary = MTFService.calculate_summary(dataframe)
         risk = MTFService.risk_summary(dataframe)
+        mtm_value = float(summary["total_mtm"])
+
+        if mtm_value < 0:
+           self.mtm_card.set_value_color(Theme.ERROR)
+           self.mtm_card.set_status("error")
+        else:
+           self.mtm_card.set_value_color(Theme.SUCCESS)
+           self.mtm_card.set_status("success")
 
         self._update_card(self.clients_card, str(summary["clients"]))
         self._update_card(self.positions_card, str(summary["positions"]))
@@ -523,6 +536,16 @@ class MTFPage(BasePage):
             level = "LOW"
 
         self._update_card(self.risk_card, level)
+
+        if level == "HIGH":
+            self.risk_card.set_value_color(Theme.ERROR)
+            self.risk_card.set_status("error")
+        elif level == "MEDIUM":
+            self.risk_card.set_value_color(Theme.WARNING)
+            self.risk_card.set_status("warning")
+        else:
+            self.risk_card.set_value_color(Theme.SUCCESS)
+            self.risk_card.set_status("success")
 
     def _refresh_chart(self, dataframe: pd.DataFrame) -> None:
         chart_data = MTFService.symbol_exposure(dataframe)

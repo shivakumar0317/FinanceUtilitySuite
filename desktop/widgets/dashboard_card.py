@@ -2,11 +2,8 @@
 Finance Utility Suite
 Dashboard Card Widget
 
-Reusable summary card used across dashboards, analytics,
-portfolio, MTF and risk modules.
-
 Author : Shiva Kumar
-Version: 1.00
+Version: 1.01
 """
 
 from __future__ import annotations
@@ -19,7 +16,7 @@ from desktop.theme import Theme
 class DashboardCard(ctk.CTkFrame):
     """Reusable dashboard summary card."""
 
-    CARD_HEIGHT = 140
+    CARD_HEIGHT = 120
 
     STATUS_COLORS = {
         "default": Theme.TEXT_SECONDARY,
@@ -64,11 +61,9 @@ class DashboardCard(ctk.CTkFrame):
         self.set_status(status)
 
     def _build_ui(self) -> None:
-        """Build card UI."""
-
         self.title_label = ctk.CTkLabel(
             self,
-            text=self._get_header_text(),
+            text=self.title_text,
             font=Theme.FONT_SUBHEADING,
             text_color=Theme.TEXT_SECONDARY,
             anchor="w",
@@ -77,8 +72,24 @@ class DashboardCard(ctk.CTkFrame):
             row=0,
             column=0,
             sticky="ew",
-            padx=Theme.CARD_PADDING + 8,
-            pady=(Theme.CARD_PADDING + 8, 2),
+            padx=Theme.CARD_PADDING,
+            pady=(Theme.CARD_PADDING, 0),
+        )
+
+        self.icon_label = ctk.CTkLabel(
+            self,
+            text=self.icon_text,
+            font=ctk.CTkFont(
+                family=Theme.FONT_FAMILY,
+                size=22,
+                weight="bold",
+            ),
+            text_color=Theme.PRIMARY,
+        )
+        self.icon_label.place(
+            relx=0.90,
+            rely=0.25,
+            anchor="center",
         )
 
         self.value_label = ctk.CTkLabel(
@@ -86,7 +97,7 @@ class DashboardCard(ctk.CTkFrame):
             text=self.value_text,
             font=ctk.CTkFont(
                 family=Theme.FONT_FAMILY,
-                size=30,
+                size=24,
                 weight="bold",
             ),
             text_color=Theme.TEXT_PRIMARY,
@@ -96,8 +107,8 @@ class DashboardCard(ctk.CTkFrame):
             row=1,
             column=0,
             sticky="ew",
-            padx=Theme.CARD_PADDING + 8,
-            pady=(4, 4),
+            padx=Theme.CARD_PADDING,
+            pady=(2, 2),
         )
 
         self.subtitle_label = ctk.CTkLabel(
@@ -111,37 +122,30 @@ class DashboardCard(ctk.CTkFrame):
             row=2,
             column=0,
             sticky="ew",
-            padx=Theme.CARD_PADDING + 8,
-            pady=(0, Theme.CARD_PADDING + 8),
+            padx=Theme.CARD_PADDING,
+            pady=(0, Theme.CARD_PADDING),
         )
 
     def set_value(self, value: str | int | float) -> None:
-        """Update card value."""
-
         self.value_text = str(value)
         self.value_label.configure(text=self.value_text)
 
-    def set_subtitle(self, subtitle: str) -> None:
-        """Update card subtitle."""
+    def set_value_color(self, color: str) -> None:
+        self.value_label.configure(text_color=color)
 
+    def set_subtitle(self, subtitle: str) -> None:
         self.subtitle_text = subtitle
         self.subtitle_label.configure(text=self.subtitle_text)
 
     def set_title(self, title: str) -> None:
-        """Update card title."""
-
         self.title_text = title
-        self._refresh_title()
+        self.title_label.configure(text=self.title_text)
 
     def set_icon(self, icon: str) -> None:
-        """Update card icon."""
-
         self.icon_text = icon
-        self._refresh_title()
+        self.icon_label.configure(text=self.icon_text)
 
     def set_status(self, status: str = "default") -> None:
-        """Update subtitle color and card border."""
-
         self.status = status
 
         color = self.STATUS_COLORS.get(
@@ -153,28 +157,13 @@ class DashboardCard(ctk.CTkFrame):
         self.configure(border_color=color)
 
     def clear(self) -> None:
-        """Reset card value and subtitle."""
-
         self.set_value("-")
         self.set_subtitle("")
+        self.set_icon("")
+        self.set_value_color(Theme.TEXT_PRIMARY)
         self.set_status("default")
 
-    def _refresh_title(self) -> None:
-        """Refresh title label with optional icon."""
-
-        self.title_label.configure(text=self._get_header_text())
-
-    def _get_header_text(self) -> str:
-        """Return title text with optional icon."""
-
-        if self.icon_text:
-            return f"{self.icon_text} {self.title_text}"
-
-        return self.title_text
-
     def _bind_hover(self) -> None:
-        """Bind hover effect to card and child widgets."""
-
         self.bind("<Enter>", self._on_enter)
         self.bind("<Leave>", self._on_leave)
 
@@ -183,11 +172,7 @@ class DashboardCard(ctk.CTkFrame):
             widget.bind("<Leave>", self._on_leave)
 
     def _on_enter(self, _event=None) -> None:
-        """Apply hover background."""
-
         self.configure(fg_color=self.hover_fg_color)
 
     def _on_leave(self, _event=None) -> None:
-        """Restore default background."""
-
         self.configure(fg_color=self.default_fg_color)
