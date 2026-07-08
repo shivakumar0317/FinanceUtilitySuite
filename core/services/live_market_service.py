@@ -59,3 +59,29 @@ class LiveMarketService:
                 )
 
         return pd.DataFrame(rows)
+    
+    @classmethod
+    def get_top_movers(cls):
+        """
+        Temporary top movers.
+
+        In v1.2 we'll connect this to NSE API.
+        """
+
+        gainers = [
+            ("RELIANCE", 2.35),
+            ("TCS", 1.92),
+            ("HDFCBANK", 1.64),
+            ("ICICIBANK", 1.42),
+            ("SBIN", 1.15),
+        ]
+
+        losers = [
+            ("INFY", -1.25),
+            ("WIPRO", -0.90),
+            ("BAJAJFIN", -0.76),
+            ("LT", -0.64),
+            ("TITAN", -0.55),
+        ]
+
+        return gainers, losers

@@ -15,6 +15,7 @@ from core.services.live_market_service import LiveMarketService
 from desktop.base_page import BasePage
 from desktop.widgets.dashboard_card import DashboardCard
 from core.services.market_status_service import MarketStatusService
+from desktop.widgets.mini_table import MiniTable
 
 
 class LiveMarketPage(BasePage):
@@ -165,6 +166,46 @@ class LiveMarketPage(BasePage):
             pady=(0, 12),
         )
 
+        tables = ctk.CTkFrame(
+            self.content,
+            fg_color="transparent",
+        )
+
+        tables.grid(
+            row=4,
+            column=0,
+            sticky="nsew",
+            padx=20,
+            pady=(0, 20),
+        )
+
+        tables.grid_columnconfigure(0, weight=1)
+        tables.grid_columnconfigure(1, weight=1)
+
+        self.gainers_table = MiniTable(
+            tables,
+            title="Top Gainers",
+        )
+
+        self.gainers_table.grid(
+            row=0,
+            column=0,
+            sticky="nsew",
+            padx=(0, 10),
+        )
+
+        self.losers_table = MiniTable(
+            tables,
+            title="Top Losers",
+        )
+
+        self.losers_table.grid(
+            row=0,
+            column=1,
+            sticky="nsew",
+            padx=(10, 0),
+        )
+
     def refresh_market(self) -> None:
         try:
             df = LiveMarketService.get_indices()
@@ -175,36 +216,19 @@ class LiveMarketPage(BasePage):
                 change = row["Change"]
 
                 if name == "NIFTY 50":
-                    self._update_card(
-                        self.nifty_card,
-                        price,
-                        change,
-                    )
-
+                    self._update_card(self.nifty_card, price, change)
                 elif name == "SENSEX":
-                    self._update_card(
-                        self.sensex_card,
-                        price,
-                        change,
-                    )
-
+                    self._update_card(self.sensex_card, price, change)
                 elif name == "BANKNIFTY":
-                    self._update_card(
-                        self.banknifty_card,
-                        price,
-                        change,
-                    )
-
+                    self._update_card(self.banknifty_card, price, change)
                 elif name == "INDIA VIX":
-                    self._update_card(
-                        self.vix_card,
-                        price,
-                        change,
-                    )
+                    self._update_card(self.vix_card, price, change)
+
+            self._refresh_market_status()
+            self.refresh_top_movers()
 
             self.last_update.configure(
-                text=f"Last Updated: "
-                     f"{datetime.now():%d-%b-%Y %I:%M:%S %p}"
+                text=f"Last Updated: {datetime.now():%d-%b-%Y %I:%M:%S %p}"
             )
 
             self.set_status("Market data updated")
@@ -213,31 +237,31 @@ class LiveMarketPage(BasePage):
             self.set_status(str(error))
 
         if self.auto_refresh:
-            self.after(
-                self.REFRESH_INTERVAL,
-                self.refresh_market,
-            )
+            self.after(self.REFRESH_INTERVAL, self.refresh_market)
 
-            status = MarketStatusService.get_status_text()
+    def _refresh_market_status(self) -> None:
+        status = MarketStatusService.get_status_text()
 
-            self.market_status_card.set_value(status)
-            self.market_status_card.set_subtitle(
-            MarketStatusService.get_market_hours()
-        )
+        self.market_status_card.set_value(status)
+        self.market_status_card.set_subtitle(MarketStatusService.get_market_hours())
 
         if MarketStatusService.is_market_open():
-           self.market_status_card.set_value_color("#16A34A")
-           self.market_status_card.set_status("success")
+            self.market_status_card.set_value_color("#16A34A")
+            self.market_status_card.set_status("success")
         else:
-           self.market_status_card.set_value_color("#DC2626")
-           self.market_status_card.set_status("error")    
+            self.market_status_card.set_value_color("#DC2626")
+            self.market_status_card.set_status("error")
 
-    def _update_card(
-        self,
-        card,
-        value,
-        change,
-    ):
+    def refresh_top_movers(self) -> None:
+        gainers, losers = LiveMarketService.get_top_movers()
+
+        self.gainers_table.set_headers(["Symbol", "% Change"])
+        self.gainers_table.set_data([[s, f"{c:.2f}%"] for s, c in gainers])
+
+        self.losers_table.set_headers(["Symbol", "% Change"])
+        self.losers_table.set_data([[s, f"{c:.2f}%"] for s, c in losers])
+
+    def _update_card(self, card, value, change) -> None:
         card.set_value(value)
 
         if change >= 0:
@@ -245,15 +269,11 @@ class LiveMarketPage(BasePage):
         else:
             card.set_value_color("#DC2626")
 
-    def toggle_auto_refresh(self):
+    def toggle_auto_refresh(self) -> None:
         self.auto_refresh = not self.auto_refresh
 
-        text = (
-            "Auto Refresh: ON"
-            if self.auto_refresh
-            else "Auto Refresh: OFF"
-        )
+        text = "Auto Refresh: ON" if self.auto_refresh else "Auto Refresh: OFF"
+        self.auto_button.configure(text=text)
 
-        self.auto_button.configure(
-            text=text,
-        )
+        if self.auto_refresh:
+            self.refresh_market()
