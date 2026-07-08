@@ -1,28 +1,39 @@
 # Finance Utility Suite
 
-A professional desktop application for financial analysis.
+Version: 1.00
+
+Professional desktop application for:
+
+- Stock Analysis
+- Portfolio Analysis
+- Risk Analytics
+- MTF Risk Dashboard
+- Financial Reporting
 
 ## Features
 
-- Stock Analyzer
-- Risk Analysis
-- Beta Calculation
-- Excel Report Generation
 - Dashboard
-- Live Progress
-- Background Processing
+- Stock Analyzer
+- Portfolio Analyzer
+- Analytics Dashboard
+- MTF Dashboard
+- Professional Charts
+- Excel Export
+- Activity Log
+- Background Tasks
+- About Window
 
-## Technologies
+## Technology Stack
 
-- Python
+- Python 3.14
 - CustomTkinter
 - Pandas
+- Matplotlib
 - OpenPyXL
-- Yahoo Finance
+- yFinance
 
-## Future Modules
+## Developed By
 
-- Portfolio Analyzer
-- MTF Analyzer
-- Loan Calculator
-- PDF Reports
+Shiva Kumar
+
+© 2026
