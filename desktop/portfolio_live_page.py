@@ -12,13 +12,11 @@ from tkinter import filedialog, messagebox
 import customtkinter as ctk
 import pandas as pd
 
+from core.services.portfolio_live_service import PortfolioLiveService
 from desktop.base_page import BasePage
 from desktop.widgets.dashboard_card import DashboardCard
-from desktop.widgets.result_table import ResultTable
 from desktop.widgets.mini_table import MiniTable
-from core.services.portfolio_live_service import (
-    PortfolioLiveService,
-)
+from desktop.widgets.result_table import ResultTable
 
 
 class PortfolioLivePage(BasePage):
@@ -34,7 +32,6 @@ class PortfolioLivePage(BasePage):
 
         self.dataframe: pd.DataFrame | None = None
         self.live_dataframe: pd.DataFrame | None = None
-
         self.auto_refresh = True
 
         self._build_ui()
@@ -92,8 +89,8 @@ class PortfolioLivePage(BasePage):
             pady=(0, 12),
         )
 
-        for i in range(4):
-            cards.grid_columnconfigure(i, weight=1)
+        for column in range(4):
+            cards.grid_columnconfigure(column, weight=1)
 
         self.value_card = DashboardCard(
             cards,
@@ -101,12 +98,7 @@ class PortfolioLivePage(BasePage):
             value="₹0.00",
             icon="💼",
         )
-        self.value_card.grid(
-            row=0,
-            column=0,
-            sticky="ew",
-            padx=8,
-        )
+        self.value_card.grid(row=0, column=0, sticky="ew", padx=8)
 
         self.pnl_card = DashboardCard(
             cards,
@@ -114,12 +106,7 @@ class PortfolioLivePage(BasePage):
             value="₹0.00",
             icon="📈",
         )
-        self.pnl_card.grid(
-            row=0,
-            column=1,
-            sticky="ew",
-            padx=8,
-        )
+        self.pnl_card.grid(row=0, column=1, sticky="ew", padx=8)
 
         self.return_card = DashboardCard(
             cards,
@@ -127,12 +114,7 @@ class PortfolioLivePage(BasePage):
             value="0.00%",
             icon="📊",
         )
-        self.return_card.grid(
-            row=0,
-            column=2,
-            sticky="ew",
-            padx=8,
-        )
+        self.return_card.grid(row=0, column=2, sticky="ew", padx=8)
 
         self.holdings_card = DashboardCard(
             cards,
@@ -140,12 +122,7 @@ class PortfolioLivePage(BasePage):
             value="0",
             icon="📁",
         )
-        self.holdings_card.grid(
-            row=0,
-            column=3,
-            sticky="ew",
-            padx=8,
-        )
+        self.holdings_card.grid(row=0, column=3, sticky="ew", padx=8)
 
     def _build_tables(self) -> None:
         self.result_table = ResultTable(self.content)
@@ -224,26 +201,24 @@ class PortfolioLivePage(BasePage):
         if self.dataframe is None:
             return
 
-        self.live_dataframe = (
-            PortfolioLiveService.refresh_prices(
-                self.dataframe
-            )
-        )
+        self.live_dataframe = PortfolioLiveService.refresh_prices(self.dataframe)
 
         display_df = self.live_dataframe.copy()
 
-        for col in [
-            "LTP",
-            "CURRENT_VALUE",
-            "P/L",
-            "P/L %",
-        ]:
-            
-            display_df[col] = display_df[col].map(
-            lambda x: f"{x:,.2f}"
-        )
+        for column in ["LTP", "CURRENT_VALUE", "P/L"]:
+            if column in display_df.columns:
+                display_df[column] = display_df[column].map(
+                    lambda value: f"₹{float(value):,.2f}"
+                )
 
-            self.result_table.load_dataframe(display_df)
+        if "P/L %" in display_df.columns:
+            display_df["P/L %"] = display_df["P/L %"].map(
+                lambda value: f"{float(value):,.2f}%"
+            )
+
+        self.result_table.load_dataframe(display_df)
+        self._refresh_summary()
+        self._refresh_top_movers()
 
     def _refresh_summary(self) -> None:
         df = self.live_dataframe
@@ -254,30 +229,63 @@ class PortfolioLivePage(BasePage):
         portfolio_value = df["CURRENT_VALUE"].sum()
         pnl = df["P/L"].sum()
         invested = portfolio_value - pnl
+        return_pct = (pnl / invested) * 100 if invested else 0
 
-        return_pct = (
-            (pnl / invested) * 100
-            if invested
-            else 0
-        )
-
-        self.value_card.set_value(
-            f"₹{portfolio_value:,.2f}"
-        )
-
-        self.pnl_card.set_value(
-            f"₹{pnl:,.2f}"
-        )
-
-        self.return_card.set_value(
-            f"{return_pct:.2f}%"
-        )
-
-        self.holdings_card.set_value(
-            str(len(df))
-        )
+        self.value_card.set_value(f"₹{portfolio_value:,.2f}")
+        self.pnl_card.set_value(f"₹{pnl:,.2f}")
+        self.return_card.set_value(f"{return_pct:.2f}%")
+        self.holdings_card.set_value(str(len(df)))
 
         if pnl >= 0:
             self.pnl_card.set_value_color("#16A34A")
+            self.pnl_card.set_status("success")
+            self.return_card.set_value_color("#16A34A")
+            self.return_card.set_status("success")
         else:
             self.pnl_card.set_value_color("#DC2626")
+            self.pnl_card.set_status("error")
+            self.return_card.set_value_color("#DC2626")
+            self.return_card.set_status("error")
+
+    def _refresh_top_movers(self) -> None:
+        if self.live_dataframe is None or self.live_dataframe.empty:
+            return
+
+        df = self.live_dataframe.copy()
+
+        gainers = df.sort_values("P/L %", ascending=False).head(5)
+        losers = df.sort_values("P/L %", ascending=True).head(5)
+
+        self.gainers_table.set_headers(["Symbol", "P/L %"])
+        self.gainers_table.set_data(
+            [
+                [
+                    row["SYMBOL"],
+                    f"{row['P/L %']:.2f}%",
+                ]
+                for _, row in gainers.iterrows()
+            ]
+        )
+
+        self.losers_table.set_headers(["Symbol", "P/L %"])
+        self.losers_table.set_data(
+            [
+                [
+                    row["SYMBOL"],
+                    f"{row['P/L %']:.2f}%",
+                ]
+                for _, row in losers.iterrows()
+            ]
+        )
+
+    def _schedule_refresh(self) -> None:
+        if self.auto_refresh:
+         self.after(
+            self.REFRESH_INTERVAL,
+            self._auto_refresh,
+        )
+
+
+    def _auto_refresh(self) -> None:
+        self.refresh_portfolio()
+        self._schedule_refresh()
