@@ -33,6 +33,7 @@ class PortfolioLivePage(BasePage):
         self.dataframe: pd.DataFrame | None = None
         self.live_dataframe: pd.DataFrame | None = None
         self.auto_refresh = True
+        self._refresh_job: str | None = None
 
         self._build_ui()
 
@@ -59,35 +60,25 @@ class PortfolioLivePage(BasePage):
             text="Import Portfolio",
             command=self.import_file,
         )
-        self.import_button.pack(
-            side="left",
-            padx=10,
-            pady=10,
-        )
+        self.import_button.pack(side="left", padx=10, pady=10)
 
         self.refresh_button = ctk.CTkButton(
             toolbar,
             text="Refresh",
             command=self.refresh_portfolio,
         )
-        self.refresh_button.pack(
-            side="left",
-            padx=10,
-            pady=10,
+        self.refresh_button.pack(side="left", padx=10, pady=10)
+
+        self.auto_button = ctk.CTkButton(
+            toolbar,
+            text="Auto Refresh: ON",
+            command=self.toggle_auto_refresh,
         )
+        self.auto_button.pack(side="left", padx=10, pady=10)
 
     def _build_cards(self) -> None:
-        cards = ctk.CTkFrame(
-            self.content,
-            fg_color="transparent",
-        )
-        cards.grid(
-            row=1,
-            column=0,
-            sticky="ew",
-            padx=20,
-            pady=(0, 12),
-        )
+        cards = ctk.CTkFrame(self.content, fg_color="transparent")
+        cards.grid(row=1, column=0, sticky="ew", padx=20, pady=(0, 12))
 
         for column in range(4):
             cards.grid_columnconfigure(column, weight=1)
@@ -134,25 +125,12 @@ class PortfolioLivePage(BasePage):
             pady=(0, 12),
         )
 
-        bottom = ctk.CTkFrame(
-            self.content,
-            fg_color="transparent",
-        )
-        bottom.grid(
-            row=3,
-            column=0,
-            sticky="ew",
-            padx=20,
-            pady=(0, 20),
-        )
-
+        bottom = ctk.CTkFrame(self.content, fg_color="transparent")
+        bottom.grid(row=3, column=0, sticky="ew", padx=20, pady=(0, 20))
         bottom.grid_columnconfigure(0, weight=1)
         bottom.grid_columnconfigure(1, weight=1)
 
-        self.gainers_table = MiniTable(
-            bottom,
-            title="Top Gainers",
-        )
+        self.gainers_table = MiniTable(bottom, title="Top Gainers")
         self.gainers_table.grid(
             row=0,
             column=0,
@@ -160,10 +138,7 @@ class PortfolioLivePage(BasePage):
             padx=(0, 10),
         )
 
-        self.losers_table = MiniTable(
-            bottom,
-            title="Top Losers",
-        )
+        self.losers_table = MiniTable(bottom, title="Top Losers")
         self.losers_table.grid(
             row=0,
             column=1,
@@ -192,13 +167,11 @@ class PortfolioLivePage(BasePage):
             self.refresh_portfolio()
 
         except Exception as error:
-            messagebox.showerror(
-                "Import Error",
-                str(error),
-            )
+            messagebox.showerror("Import Error", str(error))
 
     def refresh_portfolio(self) -> None:
         if self.dataframe is None:
+            self.set_status("Please import a portfolio file first.")
             return
 
         self.live_dataframe = PortfolioLiveService.refresh_prices(self.dataframe)
@@ -219,6 +192,8 @@ class PortfolioLivePage(BasePage):
         self.result_table.load_dataframe(display_df)
         self._refresh_summary()
         self._refresh_top_movers()
+        self.start_auto_refresh()
+        self.set_status("Portfolio live data updated.")
 
     def _refresh_summary(self) -> None:
         df = self.live_dataframe
@@ -259,10 +234,7 @@ class PortfolioLivePage(BasePage):
         self.gainers_table.set_headers(["Symbol", "P/L %"])
         self.gainers_table.set_data(
             [
-                [
-                    row["SYMBOL"],
-                    f"{row['P/L %']:.2f}%",
-                ]
+                [row["SYMBOL"], f"{row['P/L %']:.2f}%"]
                 for _, row in gainers.iterrows()
             ]
         )
@@ -270,22 +242,49 @@ class PortfolioLivePage(BasePage):
         self.losers_table.set_headers(["Symbol", "P/L %"])
         self.losers_table.set_data(
             [
-                [
-                    row["SYMBOL"],
-                    f"{row['P/L %']:.2f}%",
-                ]
+                [row["SYMBOL"], f"{row['P/L %']:.2f}%"]
                 for _, row in losers.iterrows()
             ]
         )
 
-    def _schedule_refresh(self) -> None:
-        if self.auto_refresh:
-         self.after(
+    def start_auto_refresh(self) -> None:
+        if not self.auto_refresh:
+            return
+
+        self.stop_auto_refresh()
+
+        self._refresh_job = self.after(
             self.REFRESH_INTERVAL,
             self._auto_refresh,
         )
 
+    def stop_auto_refresh(self) -> None:
+        if self._refresh_job is None:
+            return
+
+        try:
+            self.after_cancel(self._refresh_job)
+        except Exception:
+            pass
+
+        self._refresh_job = None
 
     def _auto_refresh(self) -> None:
+        self._refresh_job = None
         self.refresh_portfolio()
-        self._schedule_refresh()
+
+    def toggle_auto_refresh(self) -> None:
+        self.auto_refresh = not self.auto_refresh
+
+        if self.auto_refresh:
+            self.auto_button.configure(text="Auto Refresh: ON")
+            self.start_auto_refresh()
+            self.set_status("Auto refresh enabled.")
+        else:
+            self.stop_auto_refresh()
+            self.auto_button.configure(text="Auto Refresh: OFF")
+            self.set_status("Auto refresh disabled.")
+
+    def destroy(self) -> None:
+        self.stop_auto_refresh()
+        super().destroy()
