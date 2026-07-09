@@ -5,9 +5,11 @@ from desktop.dashboard_page import DashboardPage
 from desktop.sidebar import Sidebar
 from desktop.stock_page import StockPage
 from desktop.portfolio_page import PortfolioPage
+from desktop.portfolio_live_page import PortfolioLivePage
 from desktop.mtf_page import MTFPage
 from desktop.live_market_page import LiveMarketPage
 from desktop.windows.about_window import AboutWindow
+
 
 class Dashboard(ctk.CTk):
 
@@ -76,6 +78,13 @@ class Dashboard(ctk.CTk):
        elif page == "live":
          self.clear_main()
          LiveMarketPage(self.main).pack(
+        fill="both",
+        expand=True,
+    )
+         
+       elif page == "portfolio_live":
+        self.clear_main()
+        PortfolioLivePage(self.main).pack(
         fill="both",
         expand=True,
     )

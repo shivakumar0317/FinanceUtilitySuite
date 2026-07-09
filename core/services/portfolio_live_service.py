@@ -52,10 +52,10 @@ class PortfolioLiveService:
                 else 0
             )
 
-            prices.append(ltp)
-            values.append(current)
-            pnl.append(profit)
-            pnl_pct.append(profit_pct)
+            prices.append(round(ltp, 2))
+            values.append(round(current, 2))
+            pnl.append(round(profit, 2))
+            pnl_pct.append(round(profit_pct, 2))
 
         df["LTP"] = prices
         df["CURRENT_VALUE"] = values
