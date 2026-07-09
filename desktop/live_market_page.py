@@ -16,6 +16,7 @@ from desktop.base_page import BasePage
 from desktop.widgets.dashboard_card import DashboardCard
 from core.services.market_status_service import MarketStatusService
 from desktop.widgets.mini_table import MiniTable
+from core.services.watchlist_service import WatchlistService
 
 
 class LiveMarketPage(BasePage):
@@ -206,6 +207,74 @@ class LiveMarketPage(BasePage):
             padx=(10, 0),
         )
 
+        watchlist_frame = ctk.CTkFrame(self.content)
+        watchlist_frame.grid(
+            row=5,
+            column=0,
+            sticky="ew",
+            padx=20,
+            pady=(0, 20),
+        )
+
+        watchlist_frame.grid_columnconfigure(1, weight=1)
+
+        watchlist_title = ctk.CTkLabel(
+        watchlist_frame,
+            text="Watchlist",
+            font=ctk.CTkFont(size=16, weight="bold"),
+        )
+        watchlist_title.grid(row=0, column=0, sticky="w", padx=12, pady=(12, 8))
+
+        self.watchlist_entry = ctk.CTkEntry(
+        watchlist_frame,
+            placeholder_text="Enter symbol e.g. RELIANCE",
+        )
+        self.watchlist_entry.grid(
+            row=1,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=12,
+            pady=(0, 10),
+        )
+
+        self.add_watchlist_button = ctk.CTkButton(
+        watchlist_frame,
+            text="Add Symbol",
+            command=self.add_watchlist_symbol,
+        )
+        self.add_watchlist_button.grid(
+            row=1,
+            column=2,
+            padx=(0, 10),
+            pady=(0, 10),
+        )
+
+        self.remove_watchlist_button = ctk.CTkButton(
+        watchlist_frame,
+            text="Remove Selected",
+            command=self.remove_watchlist_symbol,
+        )
+        self.remove_watchlist_button.grid(
+            row=1,
+            column=3,
+            padx=(0, 12),
+            pady=(0, 10),
+        )
+
+        self.watchlist_table = MiniTable(
+        watchlist_frame,
+            title="Live Watchlist",
+        )
+        self.watchlist_table.grid(
+            row=2,
+            column=0,
+            columnspan=4,
+            sticky="ew",
+            padx=12,
+            pady=(0, 12),
+        )
+
     def refresh_market(self) -> None:
         try:
             df = LiveMarketService.get_indices()
@@ -226,6 +295,7 @@ class LiveMarketPage(BasePage):
 
             self._refresh_market_status()
             self.refresh_top_movers()
+            self.refresh_watchlist()
 
             self.last_update.configure(
                 text=f"Last Updated: {datetime.now():%d-%b-%Y %I:%M:%S %p}"
@@ -277,3 +347,57 @@ class LiveMarketPage(BasePage):
 
         if self.auto_refresh:
             self.refresh_market()
+
+    def refresh_watchlist(self) -> None:
+        symbols = WatchlistService.load_symbols()
+        dataframe = LiveMarketService.get_watchlist_prices(symbols)
+
+        self.watchlist_table.set_headers(["Symbol", "Price", "Change %"])
+
+        rows = []
+
+        for _, row in dataframe.iterrows():
+            rows.append(
+            [
+                row["Symbol"],
+                f"{row['Price']:,.2f}",
+                f"{row['Change %']:.2f}%",
+            ]
+        )
+
+        self.watchlist_table.set_data(rows)
+
+
+    def add_watchlist_symbol(self) -> None:
+        symbol = self.watchlist_entry.get().strip().upper()
+
+        if not symbol:
+         self.set_status("Enter a symbol")
+         return
+
+        WatchlistService.add_symbol(symbol)
+
+        self.watchlist_entry.delete(0, "end")
+        self.refresh_watchlist()
+        self.set_status(f"Added {symbol} to watchlist")
+
+
+    def remove_watchlist_symbol(self) -> None:
+        if self.watchlist_table.tree is None:
+            return
+
+        selected = self.watchlist_table.tree.selection()
+
+        if not selected:
+         self.set_status("Please select a symbol to remove")
+         return
+
+        values = self.watchlist_table.tree.item(selected[0], "values")
+
+        if not values:
+            return
+
+        symbol = str(values[0])
+        WatchlistService.remove_symbol(symbol)
+        self.refresh_watchlist()
+        self.set_status(f"Removed {symbol} from watchlist")            

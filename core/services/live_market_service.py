@@ -7,8 +7,8 @@ Version: 1.10
 
 from __future__ import annotations
 
-import yfinance as yf
 import pandas as pd
+import yfinance as yf
 
 
 class LiveMarketService:
@@ -59,15 +59,9 @@ class LiveMarketService:
                 )
 
         return pd.DataFrame(rows)
-    
+
     @classmethod
     def get_top_movers(cls):
-        """
-        Temporary top movers.
-
-        In v1.2 we'll connect this to NSE API.
-        """
-
         gainers = [
             ("RELIANCE", 2.35),
             ("TCS", 1.92),
@@ -85,3 +79,46 @@ class LiveMarketService:
         ]
 
         return gainers, losers
+
+    @classmethod
+    def get_watchlist_prices(
+        cls,
+        symbols: list[str],
+    ) -> pd.DataFrame:
+        rows = []
+
+        for symbol in symbols:
+            try:
+                ticker = yf.Ticker(f"{symbol}.NS")
+                info = ticker.fast_info
+
+                price = float(info.get("lastPrice", 0))
+                previous = float(
+                    info.get("previousClose", price)
+                )
+
+                change = price - previous
+                change_pct = (
+                    (change / previous) * 100
+                    if previous
+                    else 0
+                )
+
+                rows.append(
+                    {
+                        "Symbol": symbol,
+                        "Price": price,
+                        "Change %": change_pct,
+                    }
+                )
+
+            except Exception:
+                rows.append(
+                    {
+                        "Symbol": symbol,
+                        "Price": 0,
+                        "Change %": 0,
+                    }
+                )
+
+        return pd.DataFrame(rows)
