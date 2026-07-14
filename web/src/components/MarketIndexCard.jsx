@@ -1,0 +1,2 @@
+import {Card,CardContent,Typography} from "@mui/material";
+export default function MarketIndexCard({index}){const p=index.change_percent>=0;return <Card><CardContent><Typography color="text.secondary">{index.name}</Typography><Typography variant="h5" fontWeight={800} mt={1}>{Number(index.price).toLocaleString("en-IN")}</Typography><Typography color={p?"success.main":"error.main"} fontWeight={700}>{p?"+":""}{index.change} ({p?"+":""}{index.change_percent}%)</Typography></CardContent></Card>}

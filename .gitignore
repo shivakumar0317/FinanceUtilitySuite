@@ -1,27 +1,35 @@
+# Environment
+.env
+web/.env
+
+# Database
+*.db
+
 # Python
 __pycache__/
 *.pyc
-
-# Virtual Environment
+*.pyo
 venv/
-.env/
+.envrc
 
-# Build
-build/
+# React
+web/node_modules/
+node_modules/
 dist/
-*.spec
+build/
 
 # IDE
 .vscode/
 .idea/
 
+# OS
+Thumbs.db
+.DS_Store
+
 # Logs
 logs/
+*.log
 
-# Generated Reports
-output/*.xlsx
-output/*.pdf
-
-# Windows
-Thumbs.db
-Desktop.ini
+# Generated reports
+output/
+*.xlsx

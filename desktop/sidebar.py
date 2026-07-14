@@ -28,6 +28,8 @@ class Sidebar(ctk.CTkFrame):
             ("🏦 MTF Analyzer", "mtf"),
             ("📡 Live Market", "live"),
             ("💰 Portfolio Live", "portfolio_live"),
+            ("📈 Portfolio Performance", "portfolio_performance"),
+            ("📊 Risk Analytics", "risk_analytics"),
             ("💰 Loan Calculator", "loan"),
             ("📄 Reports", "reports"),
             ("⚙ Settings", "settings"),

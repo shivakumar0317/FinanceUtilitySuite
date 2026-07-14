@@ -46,6 +46,8 @@ class PortfolioPage(BasePage):
 
         self.status_label: ctk.CTkLabel | None = None
 
+        self.top_holdings_chart: ChartWidget | None = None
+
         self.build_ui()
 
     # -----------------------------------------------------
@@ -109,13 +111,43 @@ class PortfolioPage(BasePage):
     def build_charts(self) -> None:
         """Build portfolio charts section."""
 
-        charts = self.create_section(row=3, columns=2)
+        charts = self.create_section(row=3, columns=1)
+        charts.grid_columnconfigure(0, weight=1)
+        charts.grid_rowconfigure(0, weight=1)
+        charts.grid_rowconfigure(1, weight=1)
 
-        self.allocation_chart = ChartWidget(charts)
-        self.allocation_chart.grid(row=0, column=0, sticky="nsew", padx=8, pady=8)
+        top_row = ctk.CTkFrame(charts, fg_color="transparent")
+        top_row.grid(row=0, column=0, sticky="nsew")
+        top_row.grid_columnconfigure(0, weight=1)
+        top_row.grid_columnconfigure(1, weight=1)
+        top_row.grid_rowconfigure(0, weight=1)
 
-        self.pnl_chart = ChartWidget(charts)
-        self.pnl_chart.grid(row=0, column=1, sticky="nsew", padx=8, pady=8)
+        self.allocation_chart = ChartWidget(top_row)
+        self.allocation_chart.grid(
+            row=0,
+            column=0,
+            sticky="nsew",
+            padx=8,
+            pady=8,
+        )
+
+        self.pnl_chart = ChartWidget(top_row)
+        self.pnl_chart.grid(
+            row=0,
+            column=1,
+            sticky="nsew",
+            padx=8,
+            pady=8,
+        )
+
+        self.top_holdings_chart = ChartWidget(charts)
+        self.top_holdings_chart.grid(
+            row=1,
+            column=0,
+            sticky="nsew",
+            padx=8,
+            pady=8,
+        )
 
     def build_mini_tables(self) -> None:
         """Build Top Gainers and Top Losers tables."""
@@ -244,6 +276,20 @@ class PortfolioPage(BasePage):
                 title="Top Profit / Loss",
                 xlabel="Symbol",
                 ylabel="Profit",
+            )
+
+        holdings_df = dataframe.sort_values(
+            by="Current Value",
+            ascending=False,
+        ).head(10)
+
+        if self.top_holdings_chart is not None:
+            self.top_holdings_chart.plot_bar(
+                x=holdings_df["Symbol"].tolist(),
+                y=holdings_df["Current Value"].tolist(),
+                title="Top Holdings",
+                xlabel="Stock",
+                ylabel="Current Value",
             )
 
     def update_mini_tables(self, dataframe: pd.DataFrame) -> None:
