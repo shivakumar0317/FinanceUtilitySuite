@@ -14,6 +14,7 @@ from backend.api.market_dashboard_routes import (
 from backend.api.watchlist_routes import (
     router as watchlist_router,
 )
+from backend.api.stock_routes import router as stock_router
 
 settings = get_settings()
 
@@ -38,6 +39,7 @@ app.include_router(market_router)
 app.include_router(analytics_router)
 app.include_router(market_dashboard_router)
 app.include_router(watchlist_router)
+app.include_router(stock_router)
 
 
 @app.get("/health", tags=["System"])
