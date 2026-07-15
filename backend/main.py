@@ -21,7 +21,7 @@ from backend.api.portfolio_live_routes import (
 from backend.api.risk_analytics_routes import (
     router as risk_analytics_router,
 )
-
+from backend.api.mtf_routes import router as mtf_router
 
 
 settings = get_settings()
@@ -50,6 +50,7 @@ app.include_router(watchlist_router)
 app.include_router(stock_router)
 app.include_router(portfolio_live_router)
 app.include_router(risk_analytics_router)
+app.include_router(mtf_router)
 
 @app.get("/health", tags=["System"])
 def health_check():
