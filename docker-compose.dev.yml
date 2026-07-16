@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: finance_postgres_dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: finance_utility_suite
+      POSTGRES_USER: finance_user
+      POSTGRES_PASSWORD: finance_password
+    volumes:
+      - finance_postgres_dev_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  finance_postgres_dev_data:
