@@ -9,7 +9,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import MTFClientRiskTable from "../components/MTFClientRiskTable";
 import MTFDataTables from "../components/MTFDataTables";
@@ -47,10 +47,17 @@ export default function MTFDashboardPage() {
 
   const dashboard = useQuery({
     queryKey: ["mtf-dashboard"],
-    enabled: false,
+    enabled: true,
+    retry: false,
     queryFn: async () =>
       (await api.get("/api/mtf/dashboard")).data,
   });
+
+    useEffect(() => {
+      if (dashboard.data) {
+      setDashboardData(dashboard.data);
+    }
+  }, [dashboard.data]);
 
   const refreshDashboard = async () => {
     const result = await dashboard.refetch();

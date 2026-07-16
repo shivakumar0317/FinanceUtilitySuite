@@ -8,7 +8,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import PortfolioLiveChart from "../components/PortfolioLiveChart";
 import PortfolioLiveHoldingsTable from "../components/PortfolioLiveHoldingsTable";
@@ -44,7 +44,8 @@ export default function PortfolioLivePage() {
 
   const refresh = useQuery({
     queryKey: ["portfolio-live-dashboard"],
-    enabled: false,
+    enabled: true,
+    retry: false,
     queryFn: async () =>
       (
         await api.get(
@@ -52,6 +53,11 @@ export default function PortfolioLivePage() {
         )
       ).data,
   });
+    useEffect(() => {
+      if (refresh.data) {
+        setDashboardData(refresh.data);
+      }
+    }, [refresh.data]);
 
   const refreshDashboard = async () => {
     const result = await refresh.refetch();
