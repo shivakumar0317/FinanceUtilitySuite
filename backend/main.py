@@ -20,16 +20,16 @@ from backend.api.system_routes import router as system_router
 from backend.api.watchlist_routes import router as watchlist_router
 from backend.config import get_settings
 from backend.database import SessionLocal
-
+from backend.exceptions import register_exception_handlers
+from backend.logging_config import configure_logging
+from backend.middleware.request_id import RequestIDMiddleware
+from backend.middleware.request_logger import RequestLoggingMiddleware
 
 settings = get_settings()
+configure_logging(logging.DEBUG if settings.debug else logging.INFO)
 logger = logging.getLogger("finance_utility_suite")
 
-app = FastAPI(
-    title=settings.app_name,
-    version=settings.app_version,
-    debug=settings.debug,
-)
+app = FastAPI(title=settings.app_name, version=settings.app_version, debug=settings.debug)
 
 app.add_middleware(
     CORSMiddleware,
@@ -38,6 +38,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(RequestLoggingMiddleware)
+app.add_middleware(RequestIDMiddleware)
+
+register_exception_handlers(app)
 
 app.include_router(system_router)
 app.include_router(auth_router)
@@ -55,7 +59,6 @@ app.include_router(mtf_router)
 @app.on_event("startup")
 def startup_diagnostics() -> None:
     database_status = "Connected"
-
     try:
         with SessionLocal() as db:
             db.execute(text("SELECT 1"))
@@ -64,15 +67,14 @@ def startup_diagnostics() -> None:
         logger.exception("Database startup check failed.")
 
     logger.info(
-        "\n"
-        "=========================================\n"
-        " %s\n"
-        " Version     : %s\n"
-        " Environment : %s\n"
-        " Database    : %s\n"
-        "=========================================",
+        "Application started | name=%s | version=%s | environment=%s | database=%s",
         settings.app_name,
         settings.app_version,
         settings.environment,
         database_status,
     )
+
+
+@app.on_event("shutdown")
+def shutdown_diagnostics() -> None:
+    logger.info("Application stopped | name=%s | version=%s", settings.app_name, settings.app_version)
