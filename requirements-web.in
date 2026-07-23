@@ -1,0 +1,18 @@
+# Direct backend dependencies for Finance Utility Suite v1.8.1.
+# Generate the exact lock file from the tested Docker container using:
+#   powershell -ExecutionPolicy Bypass -File scripts/lock_backend_dependencies.ps1
+
+fastapi>=0.115,<1.0
+uvicorn[standard]>=0.34,<1.0
+sqlalchemy>=2.0,<3.0
+pydantic>=2.10,<3.0
+pydantic-settings>=2.7,<3.0
+psycopg[binary]>=3.2,<4.0
+yfinance>=0.2.54
+pandas>=2.2
+openpyxl>=3.1.5
+passlib[bcrypt]==1.7.4
+bcrypt==4.1.3
+python-jose[cryptography]>=3.3
+email-validator>=2.2
+python-multipart>=0.0.20

@@ -1,20 +1,34 @@
-# Environment
+# Environment and secrets
 .env
+.env.*
+!.env.example
+!web/.env.example
 web/.env
 
-# Database
+# Database and local Docker data
 *.db
+*.sqlite
+*.sqlite3
+docker-data/
+postgres-data/
 
 # Python
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 venv/
+.venv/
 .envrc
 
-# React
+# React / Node
 web/node_modules/
 node_modules/
+web/dist/
 dist/
 build/
 
@@ -30,6 +44,15 @@ Thumbs.db
 logs/
 *.log
 
-# Generated reports
+# Generated reports and runtime uploads
 output/
-*.xlsx
+uploads/
+backend/uploads/
+
+# Temporary files
+*.tmp
+*.temp
+~$*
+
+# Backup files
+*.backup
