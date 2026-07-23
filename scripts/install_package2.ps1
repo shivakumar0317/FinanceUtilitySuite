@@ -1,42 +1,52 @@
 $ErrorActionPreference = "Stop"
-
 $ProjectRoot = "D:\FinanceUtilitySuite"
 $PackageRoot = Split-Path -Parent $PSScriptRoot
-
-Write-Host "Installing Finance Utility Suite v1.8.1 Package 2..." -ForegroundColor Cyan
-
-if (-not (Test-Path $ProjectRoot)) {
-    throw "Project folder not found: $ProjectRoot"
-}
-
-$backupSuffix = ".v1.8.0.backup"
+$BackupSuffix = ".v1.8.2.package2.backup"
+$MainFile = Join-Path $ProjectRoot "backend\main.py"
 
 $files = @(
-    @{ Source = "$PackageRoot\backend\main.py"; Destination = "$ProjectRoot\backend\main.py" },
-    @{ Source = "$PackageRoot\backend\config.py"; Destination = "$ProjectRoot\backend\config.py" },
-    @{ Source = "$PackageRoot\backend\api\system_routes.py"; Destination = "$ProjectRoot\backend\api\system_routes.py" },
-    @{ Source = "$PackageRoot\docker-compose.yml"; Destination = "$ProjectRoot\docker-compose.yml" }
+ "backend\security.py",
+ "backend\security_settings.py",
+ "backend\middleware\security_headers.py",
+ "backend\middleware\request_size.py",
+ "scripts\install_package2.ps1",
+ "scripts\test_package2.ps1"
 )
 
-foreach ($file in $files) {
-    $destination = $file.Destination
-    $source = $file.Source
-
-    if ((Test-Path $destination) -and -not (Test-Path "$destination$backupSuffix")) {
-        Copy-Item $destination "$destination$backupSuffix"
-        Write-Host "Backup created: $destination$backupSuffix"
+foreach ($relativePath in $files) {
+    $source = Join-Path $PackageRoot $relativePath
+    $destination = Join-Path $ProjectRoot $relativePath
+    if (-not (Test-Path $source)) { throw "Missing package file: $source" }
+    if ([IO.Path]::GetFullPath($source) -eq [IO.Path]::GetFullPath($destination)) {
+        Write-Host "Skipped self-copy: $relativePath" -ForegroundColor Yellow
+        continue
     }
-
-    $destinationDirectory = Split-Path -Parent $destination
-    New-Item -ItemType Directory -Force -Path $destinationDirectory | Out-Null
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $destination) | Out-Null
+    if ((Test-Path $destination) -and -not (Test-Path "$destination$BackupSuffix")) {
+        Copy-Item $destination "$destination$BackupSuffix"
+    }
     Copy-Item $source $destination -Force
-    Write-Host "Installed: $destination"
+    Write-Host "Installed: $relativePath" -ForegroundColor Green
 }
 
-Write-Host ""
-Write-Host "Package installation complete." -ForegroundColor Green
-Write-Host "Next commands:"
-Write-Host "  cd D:\FinanceUtilitySuite"
-Write-Host "  docker compose build --no-cache backend"
-Write-Host "  docker compose up -d"
-Write-Host "  docker compose ps"
+if (-not (Test-Path "$MainFile$BackupSuffix")) {
+    Copy-Item $MainFile "$MainFile$BackupSuffix"
+}
+
+$main = Get-Content $MainFile -Raw
+$importLine = "from backend.security import register_security_middleware"
+if ($main -notmatch [regex]::Escape($importLine)) {
+    $anchor = "from backend.performance_settings import get_performance_settings"
+    if ($main -notmatch [regex]::Escape($anchor)) { throw "Expected import anchor not found in backend\main.py" }
+    $main = $main.Replace($anchor, "$anchor`r`n$importLine")
+}
+
+$registerLine = "register_security_middleware(app)"
+if ($main -notmatch [regex]::Escape($registerLine)) {
+    $anchor = "register_exception_handlers(app)"
+    if ($main -notmatch [regex]::Escape($anchor)) { throw "Expected middleware anchor not found in backend\main.py" }
+    $main = $main.Replace($anchor, "$registerLine`r`n$anchor")
+}
+
+Set-Content -Path $MainFile -Value $main -Encoding UTF8
+Write-Host "Package 2 installation complete." -ForegroundColor Green

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,6 +25,7 @@ from backend.middleware.request_id import RequestIDMiddleware
 from backend.middleware.request_logger import RequestLoggingMiddleware
 from backend.middleware.response_time import ResponseTimeMiddleware
 from backend.performance_settings import get_performance_settings
+from backend.security import register_security_middleware
 from backend.utils.cache import configure_cache, get_cache
 
 settings = get_settings()
@@ -39,6 +40,7 @@ if performance.gzip_enabled:
 app.add_middleware(ResponseTimeMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(RequestIDMiddleware)
+register_security_middleware(app)
 register_exception_handlers(app)
 
 for router in (
@@ -73,3 +75,4 @@ def startup_diagnostics() -> None:
 def shutdown_diagnostics() -> None:
     get_cache().clear()
     logger.info("Application stopped | name=%s | version=%s", settings.app_name, settings.app_version)
+
