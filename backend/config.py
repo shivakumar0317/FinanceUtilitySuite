@@ -15,9 +15,10 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Finance Utility Suite"
-    app_version: str = "1.7.0-alpha"
+    app_version: str = "1.8.1"
     environment: str = "development"
     debug: bool = True
+    upload_dir: str = Field(default="uploads", alias="UPLOAD_DIR")
 
     database_url: str = Field(
         default="sqlite:///./finance_utility_suite.db",
