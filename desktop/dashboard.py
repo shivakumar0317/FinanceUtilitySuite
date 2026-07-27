@@ -4,6 +4,7 @@ from desktop.analytics_page import AnalyticsPage
 from desktop.dashboard_page import DashboardPage
 from desktop.live_market_page import LiveMarketPage
 from desktop.mtf_page import MTFPage
+from desktop.concentration_risk_page import ConcentrationRiskPage
 from desktop.portfolio_live_page import PortfolioLivePage
 from desktop.portfolio_page import PortfolioPage
 from desktop.portfolio_performance_page import PortfolioPerformancePage
@@ -56,6 +57,10 @@ class Dashboard(ctk.CTk):
         self.clear_main()
         MTFPage(self.main).pack(fill="both", expand=True)
 
+    def show_concentration_risk(self):
+        self.clear_main()
+        ConcentrationRiskPage(self.main).pack(fill="both",expand=True,)    
+
     def show_live_market(self):
         self.clear_main()
         LiveMarketPage(self.main).pack(fill="both", expand=True)
@@ -87,6 +92,9 @@ class Dashboard(ctk.CTk):
 
         elif page == "mtf":
             self.show_mtf()
+
+        elif page == "concentration_risk":
+            self.show_concentration_risk()
 
         elif page == "live":
             self.show_live_market()

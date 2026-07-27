@@ -26,6 +26,8 @@ from backend.middleware.request_logger import RequestLoggingMiddleware
 from backend.middleware.response_time import ResponseTimeMiddleware
 from backend.performance_settings import get_performance_settings
 from backend.security import register_security_middleware
+from backend.performance_runtime import configure_performance_runtime
+from backend.api.performance_routes import router as performance_router
 from backend.utils.cache import configure_cache, get_cache
 
 settings = get_settings()
@@ -41,6 +43,7 @@ app.add_middleware(ResponseTimeMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(RequestIDMiddleware)
 register_security_middleware(app)
+configure_performance_runtime(app)
 register_exception_handlers(app)
 
 for router in (
@@ -49,6 +52,7 @@ for router in (
     portfolio_live_router, risk_analytics_router, mtf_router,
 ):
     app.include_router(router)
+app.include_router(performance_router)
 
 @app.on_event("startup")
 def startup_diagnostics() -> None:
@@ -75,4 +79,5 @@ def startup_diagnostics() -> None:
 def shutdown_diagnostics() -> None:
     get_cache().clear()
     logger.info("Application stopped | name=%s | version=%s", settings.app_name, settings.app_version)
+
 

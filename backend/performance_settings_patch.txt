@@ -1,0 +1,19 @@
+Add these fields to PerformanceSettings:
+
+    cache_enabled: bool
+    cache_default_ttl: int
+    slow_request_logging_enabled: bool
+    slow_request_threshold_ms: int
+
+Add these assignments inside get_performance_settings():
+
+        cache_enabled=_as_bool("CACHE_ENABLED", True),
+        cache_default_ttl=_as_int("CACHE_DEFAULT_TTL", 300),
+        slow_request_logging_enabled=_as_bool(
+            "SLOW_REQUEST_LOGGING_ENABLED",
+            True,
+        ),
+        slow_request_threshold_ms=_as_int(
+            "SLOW_REQUEST_THRESHOLD_MS",
+            500,
+        ),

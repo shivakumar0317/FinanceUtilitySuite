@@ -26,6 +26,7 @@ class Sidebar(ctk.CTkFrame):
             ("📈 Stock Analyzer", "stocks"),
             ("💼 Portfolio", "portfolio"),
             ("🏦 MTF Analyzer", "mtf"),
+            ("🎯 Concentration Risk", "concentration_risk"),
             ("📡 Live Market", "live"),
             ("💰 Portfolio Live", "portfolio_live"),
             ("📈 Portfolio Performance", "portfolio_performance"),
@@ -34,6 +35,7 @@ class Sidebar(ctk.CTkFrame):
             ("📄 Reports", "reports"),
             ("⚙ Settings", "settings"),
             ("ℹ About", "about")
+            
         ]
 
         for text, page in menu:

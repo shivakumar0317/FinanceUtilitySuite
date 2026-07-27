@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 import os
 from dataclasses import dataclass
 
@@ -22,6 +22,8 @@ class PerformanceSettings:
     gzip_minimum_size: int
     gzip_compresslevel: int
 
+    slow_request_logging_enabled: bool
+    slow_request_threshold_ms: int
 def get_performance_settings() -> PerformanceSettings:
     return PerformanceSettings(
         cache_enabled=_bool("CACHE_ENABLED", True),
@@ -30,4 +32,7 @@ def get_performance_settings() -> PerformanceSettings:
         gzip_enabled=_bool("GZIP_ENABLED", True),
         gzip_minimum_size=_int("GZIP_MINIMUM_SIZE", 1024, 0),
         gzip_compresslevel=min(_int("GZIP_COMPRESSLEVEL", 5, 1), 9),
+        slow_request_logging_enabled=_bool("SLOW_REQUEST_LOGGING_ENABLED", True),
+        slow_request_threshold_ms=_int("SLOW_REQUEST_THRESHOLD_MS", 500, 1),
     )
+
