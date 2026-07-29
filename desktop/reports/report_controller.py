@@ -10,7 +10,7 @@ from desktop.reports.portfolio_report import PortfolioReport
 from desktop.reports.analytics_report import AnalyticsReport
 
 class ReportController:
-    VERSION = "1.38.0"
+    VERSION = "1.38.1"
     DEFAULT_DIRECTORY = Path.home() / "Documents"
     @classmethod
     def _timestamp(cls) -> str: return datetime.now().strftime("%Y%m%d_%H%M%S")

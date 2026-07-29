@@ -13,10 +13,11 @@ from openpyxl.worksheet.table import Table, TableStyleInfo
 
 from desktop.reports.analytics_engine import AnalyticsSummary, PortfolioAnalyticsEngine
 from desktop.reports.base_dashboard_report import BaseDashboardReport
+from desktop.reports.performance_engine import PerformanceEngine, PerformanceSummary
 
 
 class AnalyticsReport(BaseDashboardReport):
-    VERSION: Final[str] = "1.38.0"
+    VERSION: Final[str] = "1.38.1"
     BLUE = "17365D"; MID = "2F75B5"; LIGHT = "D9EAF7"; WHITE = "FFFFFF"
     GREEN = "008000"; RED = "C00000"; GOLD = "FFC000"; GREY = "E7E6E6"
     CURRENCY = '₹#,##0.00;[Red]-₹#,##0.00'; PERCENT = '0.00"%"'
@@ -28,6 +29,8 @@ class AnalyticsReport(BaseDashboardReport):
         self.engine = PortfolioAnalyticsEngine()
         self.dataframe = pd.DataFrame()
         self.summary: AnalyticsSummary | None = None
+        self.performance_engine = PerformanceEngine()
+        self.performance_summary: PerformanceSummary | None = None
         super().__init__(
             report_title=f"{self.portfolio_name} Analytics Report",
             report_subject="Portfolio executive analytics and KPI summary",
@@ -38,6 +41,7 @@ class AnalyticsReport(BaseDashboardReport):
     def build(self, writer: pd.ExcelWriter, export_time: datetime) -> None:
         self.dataframe = self.engine.prepare(self.source_dataframe)
         self.summary = self.engine.summarize(self.source_dataframe)
+        self.performance_summary = self.performance_engine.calculate_summary(self.source_dataframe)
         self._dashboard(writer, export_time)
         self._summary_sheet(writer)
         self._chart_data(writer)
@@ -73,8 +77,14 @@ class AnalyticsReport(BaseDashboardReport):
             value_cell.fill=PatternFill("solid", fgColor=self.LIGHT); value_cell.font=Font(name="Segoe UI", size=14, bold=True)
             value_cell.alignment=Alignment(horizontal="center", vertical="center"); value_cell.number_format=fmt
         ws.merge_cells("A12:H12"); ws["A12"]="Executive Snapshot"; ws["A12"].fill=PatternFill("solid", fgColor=self.BLUE); ws["A12"].font=Font(bold=True,color=self.WHITE)
+        p = self.performance_summary
+        assert p is not None
         snapshot = [
             ("Largest Holding", f"{s.largest_holding_symbol} ({s.largest_holding_pct:.2f}%)"),
+            ("Best Performer", f"{p.best_stock} ({p.best_stock_return_pct:.2f}%)"),
+            ("Worst Performer", f"{p.worst_stock} ({p.worst_stock_return_pct:.2f}%)"),
+            ("Best Sector", f"{p.best_sector} ({p.best_sector_return_pct:.2f}%)"),
+            ("Worst Sector", f"{p.worst_sector} ({p.worst_sector_return_pct:.2f}%)"),
             ("Average Position Value", s.average_position_value),
             ("Profitable Holdings", s.profitable_holdings), ("Loss-making Holdings", s.loss_making_holdings),
         ]
@@ -95,6 +105,14 @@ class AnalyticsReport(BaseDashboardReport):
             ("Largest Holding %", s.largest_holding_pct), ("Average Position Value", s.average_position_value),
             ("Profitable Holdings", s.profitable_holdings), ("Loss-making Holdings", s.loss_making_holdings),
             ("Portfolio Health Score", s.portfolio_health_score),
+            ("Best Performer", self.performance_summary.best_stock if self.performance_summary else ""),
+            ("Best Performer Return %", self.performance_summary.best_stock_return_pct if self.performance_summary else 0.0),
+            ("Worst Performer", self.performance_summary.worst_stock if self.performance_summary else ""),
+            ("Worst Performer Return %", self.performance_summary.worst_stock_return_pct if self.performance_summary else 0.0),
+            ("Best Sector", self.performance_summary.best_sector if self.performance_summary else ""),
+            ("Best Sector Return %", self.performance_summary.best_sector_return_pct if self.performance_summary else 0.0),
+            ("Worst Sector", self.performance_summary.worst_sector if self.performance_summary else ""),
+            ("Worst Sector Return %", self.performance_summary.worst_sector_return_pct if self.performance_summary else 0.0),
         ]
         for row in rows: ws.append(row)
         for cell in ws[1]: cell.fill=PatternFill("solid", fgColor=self.BLUE); cell.font=Font(bold=True,color=self.WHITE)
