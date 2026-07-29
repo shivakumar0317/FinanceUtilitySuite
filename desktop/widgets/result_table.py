@@ -6,14 +6,14 @@ Professional reusable data table with sorting, zebra rows,
 context menu, copy support, status bar and detail window.
 
 Author : Shiva Kumar
-Version: 1.00
+Version: 1.01
 """
 
 from __future__ import annotations
 
 import tkinter as tk
 from datetime import datetime
-from typing import Any
+from typing import Any, Callable
 
 import customtkinter as ctk
 import pandas as pd
@@ -41,8 +41,18 @@ class ResultTable(ctk.CTkFrame):
         "%",
     )
 
-    def __init__(self, master):
-        super().__init__(master, corner_radius=Theme.BORDER_RADIUS, border_width=1)
+    def __init__(
+        self,
+        master,
+        on_double_click: Callable[[dict[str, Any]], None] | None = None,
+    ):
+        super().__init__(
+            master,
+            corner_radius=Theme.BORDER_RADIUS,
+            border_width=1,
+        )
+
+        self.on_double_click = on_double_click
 
         self.dataframe: pd.DataFrame | None = None
         self.columns: list[str] = []
@@ -327,7 +337,7 @@ class ResultTable(ctk.CTkFrame):
             self._update_status(values[0])
 
     def _on_double_click(self, _event) -> None:
-        """Open details on double click."""
+        """Handle row double-click."""
 
         item = self.tree.focus()
 
@@ -335,7 +345,21 @@ class ResultTable(ctk.CTkFrame):
             return
 
         values = self.tree.item(item, "values")
-        self._open_detail_window(values)
+
+        if not values:
+            return
+
+        if self.on_double_click:
+            data = dict(
+                zip(
+                    self.columns,
+                    values,
+                    strict=False,
+                )
+            )
+            self.on_double_click(data)
+        else:
+            self._open_detail_window(values)
 
     # -----------------------------------------------------
     # Detail Window
@@ -390,7 +414,21 @@ class ResultTable(ctk.CTkFrame):
             return
 
         values = self.tree.item(self.selected_item, "values")
-        self._open_detail_window(values)
+
+        if not values:
+            return
+
+        if self.on_double_click:
+            data = dict(
+                zip(
+                    self.columns,
+                    values,
+                    strict=False,
+                )
+            )
+            self.on_double_click(data)
+        else:
+            self._open_detail_window(values)
 
     # -----------------------------------------------------
     # Helpers

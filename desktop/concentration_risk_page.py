@@ -3,7 +3,7 @@ Finance Utility Suite
 MTF Concentration Risk Dashboard
 
 Author  : Shiva Kumar
-Version : 1.30
+Version : 1.31
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ import pandas as pd
 
 from core.concentration_service import ConcentrationService
 from desktop.base_page import BasePage
+from desktop.client_holdings_window import ClientHoldingsWindow
 from desktop.theme import Theme
 from desktop.widgets.activity_log import ActivityLog
 from desktop.widgets.chart_widget import ChartWidget
@@ -29,7 +30,7 @@ from desktop.widgets.result_table import ResultTable
 class ConcentrationRiskPage(BasePage):
     """MTF Concentration Risk Dashboard page."""
 
-    VERSION = "v1.30"
+    VERSION = "v1.31"
     SEARCH_COLUMNS = ("AccountId", "Largest Stock", "Risk Level")
 
     def __init__(self, master):
@@ -200,7 +201,10 @@ class ConcentrationRiskPage(BasePage):
         )
         self.table_title.grid(row=0, column=0, sticky="w", padx=12, pady=(10, 5))
 
-        self.result_table = ResultTable(table_frame)
+        self.result_table = ResultTable(
+            table_frame,
+            on_double_click=self.open_client_holdings,
+        )
         self.result_table.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
 
     def _build_status_bar(self) -> None:
@@ -575,6 +579,80 @@ class ConcentrationRiskPage(BasePage):
 
     def _refresh_result_table(self, dataframe: pd.DataFrame) -> None:
         self.result_table.load_dataframe(dataframe)
+
+    def open_client_holdings(
+        self,
+        row_data: dict,
+    ) -> None:
+        """Open the selected client's holdings drill-down window."""
+
+        if not row_data:
+            return
+
+        account_id = str(
+            row_data.get("AccountId", "")
+        ).strip()
+
+        if not account_id:
+            messagebox.showwarning(
+                "Client Holdings",
+                "The selected row does not contain an AccountId.",
+            )
+            return
+
+        try:
+            holdings = self.service.get_client_holdings(
+                account_id
+            )
+
+            summary_data = {}
+
+            if (
+                self.summary_dataframe is not None
+                and not self.summary_dataframe.empty
+                and "AccountId" in self.summary_dataframe.columns
+            ):
+                account_series = (
+                    self.summary_dataframe["AccountId"]
+                    .fillna("")
+                    .astype(str)
+                    .str.strip()
+                )
+
+                rows = self.summary_dataframe[
+                    account_series == account_id
+                ]
+
+                if not rows.empty:
+                    summary_data = rows.iloc[0].to_dict()
+
+            if not summary_data:
+                summary_data = dict(row_data)
+
+            ClientHoldingsWindow(
+                self,
+                account_id=account_id,
+                summary_data=summary_data,
+                holdings_df=holdings,
+            )
+
+            self.status_label.configure(
+                text=f"Opened holdings for client {account_id}"
+            )
+
+            self.activity_log.success(
+                f"Opened client holdings: {account_id}"
+            )
+
+        except Exception as error:
+            self.activity_log.error(
+                f"Client holdings error: {error}"
+            )
+
+            messagebox.showerror(
+                "Client Holdings",
+                str(error),
+            )
 
     @staticmethod
     def _read_file(file_path: str) -> pd.DataFrame:
