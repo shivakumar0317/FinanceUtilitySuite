@@ -43,13 +43,13 @@ class ReportController:
             output=cls.generate_portfolio(filepath, portfolio_df=portfolio_df, summary_data=summary, portfolio_name=portfolio_name); cls._show_success(output); return True
         except Exception as exc: cls._show_error(exc); return False
     @classmethod
-    def generate_analytics(cls, filepath: str | Path, *, portfolio_df: pd.DataFrame, summary_data: dict[str, Any] | None = None, portfolio_name: str = "Portfolio") -> Path:
-        return AnalyticsReport(dataframe=portfolio_df, summary_data=summary_data, portfolio_name=portfolio_name).export(filepath)
+    def generate_analytics(cls, filepath: str | Path, *, portfolio_df: pd.DataFrame, summary_data: dict[str, Any] | None = None, portfolio_name: str = "Portfolio", history_df: pd.DataFrame | None = None) -> Path:
+        return AnalyticsReport(dataframe=portfolio_df, summary_data=summary_data, portfolio_name=portfolio_name, history_dataframe=history_df).export(filepath)
     @classmethod
-    def export_analytics(cls, portfolio_df: pd.DataFrame, summary: dict[str, Any] | None = None, portfolio_name: str = "Portfolio") -> bool:
+    def export_analytics(cls, portfolio_df: pd.DataFrame, summary: dict[str, Any] | None = None, portfolio_name: str = "Portfolio", history_df: pd.DataFrame | None = None) -> bool:
         safe=''.join(c if c.isalnum() or c in '-_' else '_' for c in portfolio_name.strip()) or 'Portfolio'
         filepath=cls._save_dialog(f"{safe}_Analytics_{cls._timestamp()}.xlsx")
         if not filepath: return False
         try:
-            output=cls.generate_analytics(filepath, portfolio_df=portfolio_df, summary_data=summary, portfolio_name=portfolio_name); cls._show_success(output); return True
+            output=cls.generate_analytics(filepath, portfolio_df=portfolio_df, summary_data=summary, portfolio_name=portfolio_name, history_df=history_df); cls._show_success(output); return True
         except Exception as exc: cls._show_error(exc); return False

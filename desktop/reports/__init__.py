@@ -11,3 +11,6 @@ from desktop.reports.report_engine import ExcelReportEngine, ReportEngineError
 
 REPORTING_VERSION = "1.38.1"
 __all__ = ["REPORTING_VERSION", "ExcelReportEngine", "ReportEngineError", "BaseDashboardReport", "ReportController", "ClientHoldingsReport", "PortfolioReport", "PortfolioAnalyticsEngine", "AnalyticsSummary", "AnalyticsDataError", "AnalyticsReport", "PerformanceEngine", "PerformanceSummary", "PerformanceDataError", "ExecutiveRecommendationEngine", "Recommendation"]
+
+# Report Center Sprint 2 exports
+from .report_export_service import ReportExportError, ReportExportRequest, ReportExportService

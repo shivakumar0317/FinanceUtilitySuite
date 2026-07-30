@@ -3,7 +3,7 @@ Finance Utility Suite
 Portfolio Excel Report
 
 Author   : Shiva Kumar
-Version  : 1.37.1
+Version  : 1.40.0
 Milestone: 04 - Portfolio Report Phase C
 """
 
@@ -17,8 +17,8 @@ from openpyxl.chart import BarChart, PieChart, Reference
 from openpyxl.chart.label import DataLabelList
 from openpyxl.formatting.rule import CellIsRule
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
-from openpyxl.utils import get_column_letter
-from openpyxl.worksheet.table import Table, TableStyleInfo
+from openpyxl.utils import get_column_letter, range_boundaries
+from openpyxl.worksheet.table import Table, TableColumn, TableStyleInfo
 from openpyxl.worksheet.worksheet import Worksheet
 
 from desktop.reports.base_dashboard_report import BaseDashboardReport
@@ -27,7 +27,7 @@ from desktop.reports.base_dashboard_report import BaseDashboardReport
 class PortfolioReport(BaseDashboardReport):
     """Generate the final portfolio Excel report with dashboard and charts."""
 
-    VERSION: Final[str] = "1.37.1"
+    VERSION: Final[str] = "1.40.0"
 
     DARK_BLUE = "17365D"
     MEDIUM_BLUE = "2F75B5"
@@ -456,7 +456,6 @@ class PortfolioReport(BaseDashboardReport):
         self._apply_holdings_formats(ws, start_row + 1, end_row)
 
         ws.freeze_panes = f"A{start_row + 1}"
-        ws.auto_filter.ref = f"A{start_row}:I{end_row}"
         ws.print_title_rows = f"{start_row}:{start_row}"
         self._set_page_layout(ws, f"A1:I{end_row}")
         self._autosize(ws, 28)
@@ -783,7 +782,53 @@ class PortfolioReport(BaseDashboardReport):
         reference: str,
         name: str,
     ) -> None:
+        """Add a structurally valid Excel table.
+
+        openpyxl initialises table-column IDs from the worksheet's absolute
+        column numbers. For a table beginning in column E, that can produce
+        IDs 5, 6, 7 even though the table contains only three columns.
+        Desktop Excel may repair or remove that table definition.
+
+        Build the table columns explicitly with sequential IDs starting at 1.
+        """
+        min_col, min_row, max_col, max_row = range_boundaries(reference)
+
+        if max_row <= min_row:
+            raise ValueError(
+                f"Excel table '{name}' requires a header row and at least one data row."
+            )
+        if max_col < min_col:
+            raise ValueError(f"Invalid Excel table range: {reference}")
+
+        existing_names = {
+            table.displayName
+            for worksheet in ws.parent.worksheets
+            for table in worksheet.tables.values()
+        }
+        if name in existing_names:
+            raise ValueError(f"Duplicate Excel table name: {name}")
+
+        headers: list[str] = []
+        for column in range(min_col, max_col + 1):
+            value = ws.cell(min_row, column).value
+            header = "" if value is None else str(value).strip()
+            if not header:
+                raise ValueError(
+                    f"Excel table '{name}' contains a blank header "
+                    f"at row {min_row}, column {column}."
+                )
+            headers.append(header)
+
+        if len(headers) != len(set(headers)):
+            raise ValueError(
+                f"Excel table '{name}' contains duplicate column headers."
+            )
+
         table = Table(displayName=name, ref=reference)
+        table.tableColumns = [
+            TableColumn(id=index, name=header)
+            for index, header in enumerate(headers, start=1)
+        ]
         table.tableStyleInfo = TableStyleInfo(
             name="TableStyleMedium2",
             showFirstColumn=False,

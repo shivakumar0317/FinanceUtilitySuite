@@ -31,11 +31,8 @@ class Sidebar(ctk.CTkFrame):
             ("💰 Portfolio Live", "portfolio_live"),
             ("📈 Portfolio Performance", "portfolio_performance"),
             ("📊 Risk Analytics", "risk_analytics"),
-            ("💰 Loan Calculator", "loan"),
             ("📄 Reports", "reports"),
-            ("⚙ Settings", "settings"),
             ("ℹ About", "about")
-            
         ]
 
         for text, page in menu:

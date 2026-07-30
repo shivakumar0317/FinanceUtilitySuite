@@ -39,7 +39,7 @@ class AnalyticsReportTests(unittest.TestCase):
             output=ReportController.generate_analytics(Path(folder)/"analytics.xlsx", portfolio_df=self.data(), portfolio_name="Test")
             self.assertTrue(output.exists())
             wb=load_workbook(output)
-            self.assertEqual(wb.sheetnames,["Dashboard","Summary","Chart Data"])
+            self.assertEqual(wb.sheetnames,["Dashboard","Performance Summary","Monthly Returns","Sector Analysis","Top Performers","Summary","Chart Data"])
             self.assertEqual(wb["Chart Data"].sheet_state,"hidden")
             self.assertEqual(wb.active.title,"Dashboard")
             self.assertGreaterEqual(len(wb["Dashboard"]._charts),2)
