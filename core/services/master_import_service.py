@@ -18,6 +18,7 @@ from typing import Any
 import pandas as pd
 
 from core.services.data_cleaner import DataCleaner
+from core.services.snapshot_service import SnapshotService
 from core.services.validation_service import ValidationService
 from core.state.application_state import ApplicationState
 
@@ -29,6 +30,7 @@ class ImportResult:
     dataframe: pd.DataFrame
     summary: dict[str, Any]
     source_file: str
+    snapshot_id: str | None = None
 
 
 class MasterImportService:
@@ -71,10 +73,16 @@ class MasterImportService:
 
         summary = cls.build_summary(cleaned_dataframe)
 
+        snapshot = SnapshotService().create_snapshot(
+            cleaned_dataframe,
+            source_file=str(path),
+        )
+
         return ImportResult(
             dataframe=cleaned_dataframe.copy(),
             summary=summary,
             source_file=str(path),
+            snapshot_id=snapshot.snapshot_id,
         )
 
     @classmethod
@@ -96,10 +104,16 @@ class MasterImportService:
             source_file=source_name,
         )
 
+        snapshot = SnapshotService().create_snapshot(
+            cleaned_dataframe,
+            source_file=source_name,
+        )
+
         return ImportResult(
             dataframe=cleaned_dataframe.copy(),
             summary=cls.build_summary(cleaned_dataframe),
             source_file=source_name,
+            snapshot_id=snapshot.snapshot_id,
         )
 
     @staticmethod

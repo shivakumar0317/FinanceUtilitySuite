@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "snapshots": [
+    {
+      "snapshot_id": "20260731_113057_963145_391dde",
+      "timestamp": "2026-07-31T11:30:57",
+      "filename": "20260731_113057_963145_391dde.parquet",
+      "relative_path": "2026-07\\20260731_113057_963145_391dde.parquet",
+      "records": 1417,
+      "clients": 419,
+      "symbols": 368,
+      "portfolio_value": 394410546.59000003,
+      "total_exposure": 394410546.59000003,
+      "total_mtm": -33525195.75,
+      "source_file": "C:\\Users\\FI-FUNDSINDIA\\Desktop\\RMS\\MTF_23072026.xlsx",
+      "notes": ""
+    },
+    {
+      "snapshot_id": "20260731_113037_398058_6e612b",
+      "timestamp": "2026-07-31T11:30:37",
+      "filename": "20260731_113037_398058_6e612b.parquet",
+      "relative_path": "2026-07\\20260731_113037_398058_6e612b.parquet",
+      "records": 1417,
+      "clients": 419,
+      "symbols": 368,
+      "portfolio_value": 394410546.59000003,
+      "total_exposure": 394410546.59000003,
+      "total_mtm": -33525195.75,
+      "source_file": "C:\\Users\\FI-FUNDSINDIA\\Desktop\\RMS\\MTF_23072026.xlsx",
+      "notes": ""
+    }
+  ]
+}

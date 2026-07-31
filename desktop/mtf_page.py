@@ -15,6 +15,7 @@ from tkinter import filedialog, messagebox
 import customtkinter as ctk
 import pandas as pd
 
+from core.services.master_import_service import MasterImportService
 from core.services.mtf_service import MTFService
 from desktop.base_page import BasePage
 from desktop.widgets.activity_log import ActivityLog
@@ -343,11 +344,15 @@ class MTFPage(BasePage):
             self.activity_log.success("Loading MTF file...")
             self.progress.update_progress(0.20, "Loading file")
 
-            dataframe, _summary = MTFService.load(file_path)
-
-            self.activity_log.success("Validating columns...")
+            self.activity_log.success("Validating and cleaning portfolio...")
             self.progress.update_progress(0.40, "Validating file")
-            MTFService.validate_dataframe(dataframe)
+
+            import_result = MasterImportService.import_file(file_path)
+            dataframe = import_result.dataframe
+
+            self.activity_log.success(
+                f"Snapshot created: {import_result.snapshot_id}"
+            )
 
             self.dataframe = dataframe
             self.filtered_dataframe = dataframe.copy()
@@ -367,7 +372,12 @@ class MTFPage(BasePage):
             self.progress.complete("Ready")
             self._update_table_title(dataframe)
             self._update_footer_status(dataframe)
-            self.status_label.configure(text="MTF file imported successfully")
+            self.status_label.configure(
+                text=(
+                    "MTF file imported successfully | "
+                    f"Snapshot: {import_result.snapshot_id}"
+                )
+            )
             self.search_entry.focus_set()
             self.after(900, self._hide_progress)
 
