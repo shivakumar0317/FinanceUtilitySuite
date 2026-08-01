@@ -1,137 +1,86 @@
 import customtkinter as ctk
 
 from desktop.analytics_page import AnalyticsPage
-from desktop.dashboard_page import DashboardPage
-from desktop.sidebar import Sidebar
-from desktop.reports_page import ReportsPage
-from desktop.stock_page import StockPage
-from desktop.portfolio_page import PortfolioPage
-from desktop.portfolio_live_page import PortfolioLivePage
-from desktop.mtf_page import MTFPage
 from desktop.concentration_risk_page import ConcentrationRiskPage
+from desktop.dashboard_page import DashboardPage
 from desktop.live_market_page import LiveMarketPage
-from desktop.risk_analytics_page import RiskAnalyticsPage
-from desktop.windows.about_window import AboutWindow
-from desktop.widgets.chart_widget import ChartWidget
+from desktop.mtf_page import MTFPage
+from desktop.portfolio_live_page import PortfolioLivePage
+from desktop.portfolio_page import PortfolioPage
 from desktop.portfolio_performance_page import PortfolioPerformancePage
+from desktop.reports_page import ReportsPage
+from desktop.risk_analytics_page import RiskAnalyticsPage
+from desktop.sidebar import Sidebar
+from desktop.snapshot_manager_page import SnapshotManagerPage
+from desktop.stock_page import StockPage
+from desktop.windows.about_window import AboutWindow
+
 
 class Dashboard(ctk.CTk):
 
     def __init__(self):
         super().__init__()
 
-        self.title("Finance Utility Suite")
+        self.title("Risk Management System (RMS)")
         self.geometry("1400x800")
+        self.minsize(1100, 650)
 
         self.create_layout()
 
     def create_layout(self):
-
         self.sidebar = Sidebar(self, self.change_page)
-
         self.sidebar.pack(side="left", fill="y")
 
         self.main = ctk.CTkFrame(self)
-
         self.main.pack(side="right", fill="both", expand=True)
 
         self.show_dashboard()
 
     def clear_main(self):
-
         for widget in self.main.winfo_children():
             widget.destroy()
 
-    def show_dashboard(self):
-
+    def _show_page(self, page_class):
         self.clear_main()
+        page_class(self.main).pack(fill="both", expand=True)
 
-        DashboardPage(self.main).pack(fill="both", expand=True)
+    def show_dashboard(self):
+        self._show_page(DashboardPage)
 
     def show_analytics(self):
-
-        self.clear_main()
-
-        AnalyticsPage(self.main).pack(fill="both", expand=True)
+        self._show_page(AnalyticsPage)
 
     def show_stocks(self):
-
-        self.clear_main()
-
-        StockPage(self.main).pack(fill="both", expand=True)
+        self._show_page(StockPage)
 
     def change_page(self, page):
+        page_routes = {
+            "dashboard": DashboardPage,
+            "analytics": AnalyticsPage,
+            "stocks": StockPage,
+            "portfolio": PortfolioPage,
+            "mtf": MTFPage,
+            "concentration_risk": ConcentrationRiskPage,
+            "live": LiveMarketPage,
+            "portfolio_live": PortfolioLivePage,
+            "portfolio_performance": PortfolioPerformancePage,
+            "risk_analytics": RiskAnalyticsPage,
+            "snapshot_manager": SnapshotManagerPage,
+            "reports": ReportsPage,
+        }
 
-       if page == "dashboard":
-        self.show_dashboard()
+        if page == "about":
+            AboutWindow(self)
+            return
 
-       elif page == "analytics":
-        self.show_analytics()
+        page_class = page_routes.get(page)
+        if page_class is not None:
+            self._show_page(page_class)
+            return
 
-       elif page == "stocks":
-        self.show_stocks()
-
-       elif page == "portfolio":
         self.clear_main()
-        PortfolioPage(self.main).pack(fill="both", expand=True)
-
-       elif page == "mtf":
-        self.clear_main()
-        MTFPage(self.main).pack(fill="both", expand=True)
-
-       elif page == "concentration_risk":
-        self.clear_main()
-        ConcentrationRiskPage(self.main).pack(
-        fill="both",
-        expand=True,
-    )
-
-       elif page == "live":
-         self.clear_main()
-         LiveMarketPage(self.main).pack(
-        fill="both",
-        expand=True,
-    )
-         
-       elif page == "portfolio_live":
-        self.clear_main()
-        PortfolioLivePage(self.main).pack(
-        fill="both",
-        expand=True,
-    )
-
-       elif page == "portfolio_performance":
-        self.clear_main()
-        PortfolioPerformancePage(self.main).pack(
-        fill="both",
-        expand=True,
-    )
-
-       elif page == "risk_analytics":
-        self.clear_main()
-        RiskAnalyticsPage(self.main).pack(
-        fill="both",
-        expand=True,
-    )
-
-       elif page == "reports":
-        self.clear_main()
-        ReportsPage(self.main).pack(fill="both", expand=True)
-
-       elif page == "about":
-        AboutWindow(self)
-        return
-
-
-       else:
-        self.clear_main()
-
-        label = ctk.CTkLabel(
+        ctk.CTkLabel(
             self.main,
             text=page.title(),
             font=("Segoe UI", 30, "bold"),
-        )
-
-        label.pack(pady=30)
-
-        
+        ).pack(pady=30)

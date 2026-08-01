@@ -4,21 +4,22 @@ import customtkinter as ctk
 class Sidebar(ctk.CTkFrame):
 
     def __init__(self, master, callback):
-
-        super().__init__(master, width=220, corner_radius=0)
+        super().__init__(master, width=240, corner_radius=0)
 
         self.callback = callback
         self.pack_propagate(False)
-
         self.create_widgets()
 
     def create_widgets(self):
-
         title = ctk.CTkLabel(
-            self, text="Finance\nUtility Suite", font=("Segoe UI", 22, "bold")
+            self,
+            text="Risk Management\nSystem (RMS)",
+            font=("Segoe UI", 22, "bold"),
         )
+        title.pack(pady=(25, 18))
 
-        title.pack(pady=(30, 25))
+        menu_frame = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        menu_frame.pack(fill="both", expand=True, padx=0, pady=(0, 10))
 
         menu = [
             ("🏠 Dashboard", "dashboard"),
@@ -31,18 +32,17 @@ class Sidebar(ctk.CTkFrame):
             ("💰 Portfolio Live", "portfolio_live"),
             ("📈 Portfolio Performance", "portfolio_performance"),
             ("📊 Risk Analytics", "risk_analytics"),
+            ("🗂 Snapshot Manager", "snapshot_manager"),
             ("📄 Reports", "reports"),
-            ("ℹ About", "about")
+            ("ℹ About", "about"),
         ]
 
         for text, page in menu:
-
-            btn = ctk.CTkButton(
-                self,
+            button = ctk.CTkButton(
+                menu_frame,
                 text=text,
-                width=180,
+                width=190,
                 anchor="w",
-                command=lambda p=page: self.callback(p),
+                command=lambda selected_page=page: self.callback(selected_page),
             )
-
-            btn.pack(pady=8, padx=20)
+            button.pack(pady=6, padx=12)
