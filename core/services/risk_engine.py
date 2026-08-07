@@ -35,6 +35,12 @@ class RiskEngine:
     @classmethod
     def analyze_current_portfolio(cls)->RiskSummary:
         from core.state.application_state import ApplicationState
+        print("=" * 60)
+        print("RISK ENGINE")
+        print("Has Portfolio :", ApplicationState.has_master_portfolio())
+        master = ApplicationState.get_master_portfolio()
+        print("Rows :", 0 if master is None else len(master))
+        print("=" * 60)
         df=ApplicationState.get_master_portfolio()
         if df is None or df.empty: raise ValueError('No master portfolio is loaded. Import an MTF file before running the Risk Engine.')
         sid=''

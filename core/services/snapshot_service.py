@@ -1,32 +1,267 @@
+"""
+Finance Utility Suite
+Enterprise RMS
+
+Module:
+    snapshot_service.py
+
+Description:
+    Creates and manages portfolio snapshots.
+"""
+
 from __future__ import annotations
-from datetime import datetime
+
+from datetime import datetime, date
+import re
 from pathlib import Path
 from uuid import uuid4
+
 import pandas as pd
+
 from core.models.snapshot import SnapshotMetadata
+from core.services.enterprise_risk_service import EnterpriseRiskService
 from core.snapshots.snapshot_repository import SnapshotRepository
 
+
 class SnapshotService:
-    def __init__(self,repository:SnapshotRepository|None=None)->None: self.repository=repository or SnapshotRepository()
-    def create_snapshot(self,dataframe:pd.DataFrame,*,source_file:str|Path='',notes:str='',timestamp:datetime|None=None)->SnapshotMetadata:
-        if dataframe is None or dataframe.empty: raise ValueError('Cannot create a snapshot from empty portfolio data.')
-        created=timestamp or datetime.now(); sid=created.strftime('%Y%m%d_%H%M%S_%f')+'_'+uuid4().hex[:6]
-        filename=f'{sid}.parquet'; rel=str(Path(created.strftime('%Y-%m'))/filename)
-        meta=SnapshotMetadata(sid,created.isoformat(timespec='seconds'),filename,rel,len(dataframe),self._unique(dataframe,'AccountId'),self._unique(dataframe,'Symbol'),self._sum(dataframe,('Current Value','NetValue','BUY VALUE'),True),self._sum(dataframe,('Exposure','NetValue'),True),self._sum(dataframe,('MarkToMarket','Profit/Loss'),False),str(source_file),notes)
-        self.repository.save(dataframe,meta); return meta
-    def load_snapshot(self,snapshot_id:str)->pd.DataFrame: return self.repository.load(snapshot_id)
-    def list_snapshots(self): return self.repository.list_snapshots()
-    def latest_snapshot(self): return self.repository.latest()
-    def delete_snapshot(self,snapshot_id:str)->bool: return self.repository.delete(snapshot_id)
-    def compare_snapshots(self,older_snapshot_id:str,newer_snapshot_id:str)->dict:
-        old=self.repository.get_metadata(older_snapshot_id); new=self.repository.get_metadata(newer_snapshot_id)
-        if old is None or new is None: raise FileNotFoundError('One or both snapshots were not found.')
-        return {'older_snapshot_id':old.snapshot_id,'newer_snapshot_id':new.snapshot_id,'portfolio_value_change':new.portfolio_value-old.portfolio_value,'exposure_change':new.total_exposure-old.total_exposure,'mtm_change':new.total_mtm-old.total_mtm,'client_change':new.clients-old.clients,'symbol_change':new.symbols-old.symbols,'record_change':new.records-old.records}
+    """
+    Snapshot management service.
+    """
+
+    def __init__(
+        self,
+        repository: SnapshotRepository | str | Path = "data/snapshots",
+    ) -> None:
+        """
+        Initialize SnapshotService.
+
+        Parameters
+        ----------
+        repository
+            Either:
+            - an existing SnapshotRepository (used by tests), or
+            - a snapshot root path (used by the application).
+            """
+
+        if isinstance(repository, SnapshotRepository):
+            self.repository = repository
+        else:
+            self.repository = SnapshotRepository(repository)
+
     @staticmethod
-    def _unique(df,column): return int(df[column].dropna().nunique()) if column in df.columns else 0
-    @staticmethod
-    def _sum(df,columns,absolute):
-        for c in columns:
-            if c in df.columns:
-                s=pd.to_numeric(df[c],errors='coerce').fillna(0.0); s=s.abs() if absolute else s; return float(s.sum())
-        return 0.0
+    def _extract_business_date(source_file: str, created: datetime) -> str:
+        """
+        Extract business date from the source file.
+
+        Priority
+        --------
+        1. Filename (MTF_03082026.xlsx)
+        2. Snapshot creation date
+        """
+
+        if source_file:
+
+            filename = Path(source_file).name
+
+        match = re.search(r"(\d{2})(\d{2})(\d{4})", filename)
+
+        if match:
+
+            try:
+
+                return datetime.strptime(
+                    match.group(0),
+                    "%d%m%Y",
+                ).date().isoformat()
+
+            except ValueError:
+                pass
+
+        return created.date().isoformat() 
+
+    def create_snapshot(
+        self,
+        dataframe: pd.DataFrame,
+        *,
+        source_file: str = "",
+        notes: str = "",
+        timestamp: datetime | None = None,
+    ) -> SnapshotMetadata:
+        """
+        Create and save a snapshot.
+
+        Parameters
+        ----------
+        dataframe
+            Portfolio dataframe.
+
+        source_file
+            Original Excel file.
+
+        notes
+            Optional notes.
+
+        timestamp
+            Snapshot timestamp.
+
+        Returns
+        -------
+        SnapshotMetadata
+        """
+
+        if dataframe is None:
+            raise ValueError("DataFrame is None.")
+
+        if dataframe.empty:
+            raise ValueError("DataFrame is empty.")
+
+        created = timestamp or datetime.now()
+
+        business_date = self._extract_business_date(
+        source_file,
+        created,
+        )
+
+        snapshot_id = (
+            created.strftime("%Y%m%d_%H%M%S")
+            + "_"
+            + uuid4().hex[:6]
+        )
+
+        filename = f"{snapshot_id}.parquet"
+
+        relative_path = str(
+            Path(
+                created.strftime("%Y-%m"),
+                filename,
+            )
+        )
+
+        summary = EnterpriseRiskService.analyze(
+            dataframe,
+        )
+
+        metadata = SnapshotMetadata(
+            snapshot_id=snapshot_id,
+
+            business_date=business_date,
+
+            timestamp=created.isoformat(timespec="seconds"),
+            filename=filename,
+            relative_path=relative_path,
+
+            records=summary.records,
+            clients=summary.clients,
+            symbols=summary.symbols,
+
+            portfolio_value=summary.portfolio_value,
+            total_exposure=summary.total_exposure,
+            total_mtm=summary.total_mtm,
+
+            risk_score=summary.overall_score,
+            health=summary.health,
+
+            margin_utilization=summary.margin_utilization_percent,
+            diversification_score=summary.diversification_score,
+
+            top_client_concentration=(
+                summary.top_client_concentration_percent
+            ),
+
+            top_symbol_concentration=(
+                summary.top_symbol_concentration_percent
+            ),
+
+            source_file=str(source_file),
+            notes=notes,
+        )
+
+        self.repository.save(
+            dataframe,
+            metadata,
+        )
+
+        return metadata
+
+    def load_snapshot(
+        self,
+        snapshot_id: str,
+    ) -> pd.DataFrame:
+        """
+        Load snapshot dataframe.
+        """
+        return self.repository.load(snapshot_id)
+
+    def compare_snapshots(
+        self,
+        first_snapshot_id: str,
+        second_snapshot_id: str,
+    ) -> dict:
+        """
+        Compare two snapshots.
+
+        Returns
+        -------
+        dict
+        Summary of portfolio changes.
+        """
+
+        first = self.repository.get_metadata(first_snapshot_id)
+        second = self.repository.get_metadata(second_snapshot_id)
+
+        if first is None:
+            raise FileNotFoundError(first_snapshot_id)
+
+        if second is None:
+            raise FileNotFoundError(second_snapshot_id)
+
+        return {
+            "portfolio_value_change":
+            second.portfolio_value
+            - first.portfolio_value,
+
+        "exposure_change":
+            second.total_exposure
+            - first.total_exposure,
+
+        "mtm_change":
+            second.total_mtm
+            - first.total_mtm,
+
+        "client_change":
+            second.clients
+            - first.clients,
+
+        "symbol_change":
+            second.symbols
+            - first.symbols,
+
+        "record_change":
+            second.records
+            - first.records,
+    }
+
+    def list_snapshots(
+        self,
+    ) -> list[SnapshotMetadata]:
+        """
+        Return all snapshots.
+        """
+        return self.repository.list_snapshots()
+
+    def latest_snapshot(
+        self,
+    ) -> SnapshotMetadata | None:
+        """
+        Return latest snapshot.
+        """
+        return self.repository.latest()
+
+    def delete_snapshot(
+        self,
+        snapshot_id: str,
+    ) -> bool:
+        """
+        Delete a snapshot.
+        """
+        return self.repository.delete(snapshot_id)

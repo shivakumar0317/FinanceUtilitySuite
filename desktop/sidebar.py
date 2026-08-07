@@ -34,6 +34,7 @@ class Sidebar(ctk.CTkFrame):
             ("📊 Risk Analytics", "risk_analytics"),
             ("🗂 Snapshot Manager", "snapshot_manager"),
             ("📄 Reports", "reports"),
+            ("📈 Historical Analytics", "historical_analytics"),
             ("ℹ About", "about"),
         ]
 

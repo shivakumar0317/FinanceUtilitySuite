@@ -150,7 +150,7 @@ class SnapshotManagerPage(BasePage):
         ).grid(row=0, column=0, sticky="w", padx=14, pady=(12, 8))
 
         self._configure_tree_style()
-        columns = ("date_time", "status", "records", "clients", "symbols", "exposure", "mtm", "source_file")
+        columns = ("business_date", "imported_on", "status", "records", "clients", "symbols", "exposure", "mtm", "source_file")
         self.tree = ttk.Treeview(
             table_frame,
             columns=columns,
@@ -161,7 +161,8 @@ class SnapshotManagerPage(BasePage):
         )
 
         headings = {
-            "date_time": "Date & Time",
+            "business_date": "Business Date",
+            "imported_on": "Imported On",
             "status": "Status",
             "records": "Records",
             "clients": "Clients",
@@ -171,14 +172,15 @@ class SnapshotManagerPage(BasePage):
             "source_file": "Source File",
         }
         widths = {
-            "date_time": 185,
-            "status": 105,
-            "records": 82,
-            "clients": 78,
-            "symbols": 78,
-            "exposure": 128,
-            "mtm": 118,
-            "source_file": 175,
+            "business_date": 110,
+            "imported_on": 165,
+            "status": 100,
+            "records": 80,
+            "clients": 75,
+            "symbols": 75,
+            "exposure": 120,
+            "mtm": 120,
+            "source_file": 180,
         }
         for column in columns:
             self.tree.heading(column, text=headings[column])
@@ -260,6 +262,10 @@ class SnapshotManagerPage(BasePage):
         self._search_job = None
         try:
             snapshots = self.service.list_metadata(self.search_var.get())
+            snapshots.sort(
+            key=lambda x: x.business_date,
+            reverse=True,
+        )
             summary = self.service.summary(snapshots)
         except Exception as exc:
             self.set_status("Unable to load snapshots")
@@ -272,14 +278,33 @@ class SnapshotManagerPage(BasePage):
             status, level = self.service.health_status(metadata)
             icon = {"healthy": "●", "warning": "●", "critical": "●", "neutral": "●"}.get(level, "●")
             values = (
-                self.service.format_timestamp(metadata.timestamp),
+
+                datetime.fromisoformat(
+                    metadata.business_date
+                ).strftime("%d-%b-%Y"),
+
+                self.service.format_timestamp(
+                    metadata.timestamp
+                ),
+
                 f"{icon} {status}",
+
                 f"{metadata.records:,}",
+
                 f"{metadata.clients:,}",
+
                 f"{metadata.symbols:,}",
-                self.service.format_indian_compact(metadata.total_exposure),
-                self.service.format_indian_compact(metadata.total_mtm),
-                Path(metadata.source_file).name if metadata.source_file else "",
+
+                self.service.format_indian_compact(
+                    metadata.total_exposure
+                ),
+
+                self.service.format_indian_compact(
+                    metadata.total_mtm
+                ),
+
+                Path(metadata.source_file).name
+                if metadata.source_file else "",
             )
             item = self.tree.insert("", "end", values=values, tags=(level,))
             self._metadata_by_item[item] = metadata

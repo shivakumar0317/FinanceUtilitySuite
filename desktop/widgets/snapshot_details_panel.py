@@ -40,10 +40,28 @@ class SnapshotDetailsPanel(ctk.CTkFrame):
         self.value_labels: dict[str, ctk.CTkLabel] = {}
         current_row = 2
         sections = [
-            ("GENERAL", [("snapshot_id", "Snapshot ID"), ("timestamp", "Imported"), ("source_file", "Source File")]),
-            ("PORTFOLIO", [("records", "Records"), ("clients", "Clients"), ("symbols", "Symbols"), ("portfolio_value", "Portfolio Value")]),
-            ("RISK", [("exposure", "Exposure"), ("mtm", "MTM")]),
-            ("IMPORT", [("notes", "Notes")]),
+            ("GENERAL", [
+            ("business_date", "Business Date"),
+            ("timestamp", "Imported On"),
+            ("snapshot_id", "Snapshot ID"),
+            ("source_file", "Source File"),
+        ]),
+            ("PORTFOLIO", [
+            ("records", "Records"),
+            ("clients", "Clients"),
+            ("symbols", "Symbols"),
+            ("portfolio_value", "Portfolio Value"),
+            ("exposure", "Exposure"),
+            ("mtm", "MTM"),
+        ]),
+            ("RISK", [
+            ("risk_score", "Risk Score"),
+            ("health", "Health"),
+            ("margin_utilization", "Margin Utilization"),
+            ("top_client", "Top Client %"),
+            ("top_symbol", "Top Symbol %"),
+            ("diversification", "Diversification"),
+        ]),
         ]
 
         for section, fields in sections:
@@ -88,16 +106,27 @@ class SnapshotDetailsPanel(ctk.CTkFrame):
         )
 
         values = {
-            "snapshot_id": metadata.snapshot_id,
-            "timestamp": format_timestamp(metadata.timestamp),
-            "source_file": Path(metadata.source_file).name if metadata.source_file else "—",
-            "records": f"{metadata.records:,}",
-            "clients": f"{metadata.clients:,}",
-            "symbols": f"{metadata.symbols:,}",
-            "portfolio_value": format_money(metadata.portfolio_value),
-            "exposure": format_money(metadata.total_exposure),
-            "mtm": format_money(metadata.total_mtm),
-            "notes": metadata.notes or "—",
+            "business_date": (
+                metadata.business_date
+            if metadata.business_date
+                else "—"
+        ),
+
+            "risk_score": f"{metadata.risk_score:.2f}",
+
+            "health": metadata.health,
+
+            "margin_utilization":
+            f"{metadata.margin_utilization:.2f}%",
+
+            "top_client":
+            f"{metadata.top_client_concentration:.2f}%",
+
+            "top_symbol":
+            f"{metadata.top_symbol_concentration:.2f}%",
+
+            "diversification":
+            f"{metadata.diversification_score:.2f}%",
         }
         for key, value in values.items():
             self.value_labels[key].configure(text=value)

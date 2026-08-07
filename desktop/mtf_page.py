@@ -355,6 +355,15 @@ class MTFPage(BasePage):
             )
 
             self.dataframe = dataframe
+            from core.state.application_state import ApplicationState
+
+            print("=" * 60)
+            print("AFTER IMPORT")
+            print("Has Portfolio :", ApplicationState.has_master_portfolio())
+            master = ApplicationState.get_master_portfolio()
+            print("Rows :", 0 if master is None else len(master))
+            print("=" * 60)
+
             self.filtered_dataframe = dataframe.copy()
             self._last_file_path = file_path
             self.search_var.set("")

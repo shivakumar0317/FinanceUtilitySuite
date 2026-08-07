@@ -12,6 +12,7 @@ from desktop.reports_page import ReportsPage
 from desktop.risk_analytics_page import RiskAnalyticsPage
 from desktop.sidebar import Sidebar
 from desktop.snapshot_manager_page import SnapshotManagerPage
+from desktop.historical_analytics_page import HistoricalAnalyticsPage
 from desktop.stock_page import StockPage
 from desktop.windows.about_window import AboutWindow
 
@@ -67,6 +68,7 @@ class Dashboard(ctk.CTk):
             "risk_analytics": RiskAnalyticsPage,
             "snapshot_manager": SnapshotManagerPage,
             "reports": ReportsPage,
+            "historical_analytics": HistoricalAnalyticsPage,
         }
 
         if page == "about":

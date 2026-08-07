@@ -120,3 +120,14 @@ class SnapshotManagerService:
         number = float(value or 0.0)
         sign = "-" if number < 0 else ""
         return f"{sign}₹{abs(number):,.2f}"
+
+    def latest_snapshot(self) -> SnapshotMetadata | None:
+        snapshots = self.list_metadata()
+        if not snapshots:
+            return None
+
+        snapshots.sort(
+        key=lambda x: x.business_date,
+        reverse=True,
+        )
+        return snapshots[0]

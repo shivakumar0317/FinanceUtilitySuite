@@ -1,71 +1,471 @@
+"""
+Finance Utility Suite
+Enterprise Dashboard Page
+
+Professional dashboard assembled from reusable widgets.
+
+Author : Shiva Kumar
+Version : 2.1.0
+"""
+
 from __future__ import annotations
-from datetime import datetime
+
 import customtkinter as ctk
+
 from core.dashboard_service import DashboardService
-from desktop.widgets.risk_alert_panel import RiskAlertPanel
-from desktop.widgets.risk_metric_card import RiskMetricCard
+from core.report_service import ReportService
+
+from tkinter import filedialog, messagebox
+import os
+import subprocess
+import sys
+
+from desktop.widgets.dashboard.dashboard_header import DashboardHeader
+from desktop.widgets.dashboard.executive_cards import ExecutiveCards
+from desktop.widgets.dashboard.latest_snapshot_panel import LatestSnapshotPanel
+from desktop.widgets.dashboard.risk_summary_panel import RiskSummaryPanel
+from desktop.widgets.dashboard.dashboard_footer import DashboardFooter
+
 from desktop.widgets.risk_table import RiskTable
+from desktop.widgets.risk_alert_panel import RiskAlertPanel
+
+
 class DashboardPage(ctk.CTkFrame):
-    def __init__(self,master):
-        super().__init__(master); self.dashboard_service=DashboardService(); self.metric_cards={}; self._build(); self.load_dashboard()
+
+    """
+    Enterprise Risk Dashboard.
+    """
+
+    def __init__(self, master):
+
+        super().__init__(master)
+
+        self.service = DashboardService()
+
+        self.report_service = ReportService()
+
+        self.data = None
+
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=1)
+
+        self._build()
+
+        self.load_dashboard()
+
+    # ---------------------------------------------------------
+    # UI
+    # ---------------------------------------------------------
+
     def _build(self):
-        self.grid_columnconfigure(0,weight=1); self.grid_rowconfigure(1,weight=1)
-        h=ctk.CTkFrame(self,fg_color='transparent'); h.grid(row=0,column=0,sticky='ew',padx=24,pady=(18,8)); h.grid_columnconfigure(0,weight=1)
-        ctk.CTkLabel(h,text='Enterprise Risk Dashboard',font=('Segoe UI',28,'bold'),anchor='w').grid(row=0,column=0,sticky='w')
-        self.header_status=ctk.CTkLabel(h,text='Risk Engine: Waiting',font=('Segoe UI',11,'bold'),text_color='#3B82F6'); self.header_status.grid(row=0,column=1,sticky='e',padx=(12,12))
-        self.refresh_button=ctk.CTkButton(h,text='Refresh',width=105,command=self.load_dashboard); self.refresh_button.grid(row=0,column=2)
-        ctk.CTkLabel(h,text='Centralized portfolio health, concentration and threshold monitoring',font=('Segoe UI',12),text_color=('#6B7280','#9CA3AF'),anchor='w').grid(row=1,column=0,columnspan=3,sticky='w',pady=(3,0))
-        self.scroll=ctk.CTkScrollableFrame(self,corner_radius=0,fg_color='transparent'); self.scroll.grid(row=1,column=0,sticky='nsew',padx=16,pady=(0,14)); self.scroll.grid_columnconfigure((0,1),weight=1)
-        cards=ctk.CTkFrame(self.scroll,fg_color='transparent'); cards.grid(row=0,column=0,columnspan=2,sticky='ew',padx=4,pady=(6,12))
-        for c in range(3):cards.grid_columnconfigure(c,weight=1)
-        defs=[('score','Executive Risk Score'),('health','Portfolio Health'),('exposure','Total Exposure'),('mtm','MTM Loss'),('margin','Margin Utilization'),('diversification','Diversification')]
-        for i,(k,t) in enumerate(defs):
-            card=RiskMetricCard(cards,title=t,value='--',subtitle='Import an MTF file',height=136); card.grid(row=i//3,column=i%3,sticky='ew',padx=8,pady=8); self.metric_cards[k]=card
-        self.client_table=RiskTable(self.scroll,'Top Risky Clients'); self.client_table.grid(row=1,column=0,sticky='nsew',padx=(8,6),pady=8)
-        self.symbol_table=RiskTable(self.scroll,'Top Risky Symbols'); self.symbol_table.grid(row=1,column=1,sticky='nsew',padx=(6,8),pady=8)
-        self.alert_panel=RiskAlertPanel(self.scroll); self.alert_panel.grid(row=2,column=0,columnspan=2,sticky='ew',padx=8,pady=8)
-        self.footer=ctk.CTkFrame(self.scroll,corner_radius=10,border_width=1,border_color=('#D1D5DB','#374151')); self.footer.grid(row=3,column=0,columnspan=2,sticky='ew',padx=8,pady=(8,16))
-        for c in range(4):self.footer.grid_columnconfigure(c,weight=1)
-        self.footer_labels={}
-        for c,(k,t) in enumerate([('snapshot','Snapshot'),('refresh','Last Refresh'),('portfolio','Portfolio'),('engine','Risk Engine')]):
-            f=ctk.CTkFrame(self.footer,fg_color='transparent'); f.grid(row=0,column=c,sticky='ew',padx=12,pady=10)
-            ctk.CTkLabel(f,text=t,font=('Segoe UI',9),text_color=('#6B7280','#9CA3AF')).pack(anchor='w'); lab=ctk.CTkLabel(f,text='--',font=('Segoe UI',10,'bold')); lab.pack(anchor='w'); self.footer_labels[k]=lab
-        self.empty_label=ctk.CTkLabel(self.scroll,text='',font=('Segoe UI',12),text_color=('#6B7280','#9CA3AF')); self.empty_label.grid(row=4,column=0,columnspan=2,sticky='ew',padx=10,pady=(0,8))
+
+        # =====================================================
+        # Header
+        # =====================================================
+
+        self.header = DashboardHeader(self)
+
+        self.header.grid(
+            row=0,
+            column=0,
+            sticky="ew",
+            padx=24,
+            pady=(18, 10),
+        )
+
+        self.header.set_refresh_callback(
+            self.load_dashboard,
+        )
+
+        self.header.set_report_callback(
+            self.generate_report,
+        )
+
+        # =====================================================
+        # Scrollable Area
+        # =====================================================
+
+        self.body = ctk.CTkScrollableFrame(
+            self,
+            fg_color="transparent",
+            corner_radius=0,
+        )
+
+        self.body.grid(
+            row=1,
+            column=0,
+            sticky="nsew",
+            padx=16,
+            pady=(0, 12),
+        )
+
+        self.body.grid_columnconfigure(0, weight=1)
+        self.body.grid_columnconfigure(1, weight=1)
+
+        # =====================================================
+        # Executive Cards
+        # =====================================================
+
+        self.cards = ExecutiveCards(self.body)
+
+        self.cards.grid(
+            row=0,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=4,
+            pady=(6, 12),
+        )
+
+        # =====================================================
+        # Executive Panels
+        # =====================================================
+
+        self.snapshot_panel = LatestSnapshotPanel(self.body)
+
+        self.snapshot_panel.grid(
+            row=1,
+            column=0,
+            sticky="nsew",
+            padx=(4, 6),
+            pady=(2, 10),
+        )
+
+        self.summary_panel = RiskSummaryPanel(self.body)
+
+        self.summary_panel.grid(
+            row=1,
+            column=1,
+            sticky="nsew",
+            padx=(6, 4),
+            pady=(2, 10),
+        )
+
+        # =====================================================
+        # Risk Tables
+        # =====================================================
+
+        self.client_table = RiskTable(
+            self.body,
+            "Top Risky Clients",
+        )
+
+        self.client_table.grid(
+            row=2,
+            column=0,
+            sticky="nsew",
+            padx=(4, 6),
+            pady=8,
+        )
+
+        self.symbol_table = RiskTable(
+            self.body,
+            "Top Risky Symbols",
+        )
+
+        self.symbol_table.grid(
+            row=2,
+            column=1,
+            sticky="nsew",
+            padx=(6, 4),
+            pady=8,
+        )
+
+        # =====================================================
+        # Alert Panel
+        # =====================================================
+
+        self.alert_panel = RiskAlertPanel(
+            self.body,
+        )
+
+        self.alert_panel.grid(
+            row=3,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=4,
+            pady=8,
+        )
+
+        # =====================================================
+        # Footer
+        # =====================================================
+
+        self.footer = DashboardFooter(
+            self.body,
+        )
+
+        self.footer.grid(
+            row=4,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=4,
+            pady=(8, 16),
+        )
+
+        # =====================================================
+        # Empty State
+        # =====================================================
+
+        self.empty_label = ctk.CTkLabel(
+            self.body,
+            text="",
+            font=("Segoe UI", 12),
+        )
+
+        self.empty_label.grid(
+            row=5,
+            column=0,
+            columnspan=2,
+            pady=(0, 10),
+        )
+
+        self.body.grid_rowconfigure(
+            2,
+            weight=1,
+        )
+
+            # ---------------------------------------------------------
+    # Dashboard
+    # ---------------------------------------------------------
+
     def load_dashboard(self):
-        self.refresh_button.configure(state='disabled',text='Loading...'); self.update_idletasks()
+        """
+        Load enterprise dashboard.
+        """
+        from core.state.application_state import ApplicationState
+
+        print("=" * 60)
+        print("DASHBOARD")
+        print("Has Portfolio :", ApplicationState.has_master_portfolio())
+        master = ApplicationState.get_master_portfolio()
+        print("Rows :", 0 if master is None else len(master))
+        print("=" * 60)
+
+        self.data = self.service.get_dashboard_data()
+
+        if not self.data.available or self.data.summary is None:
+
+            self._empty(self.data.message)
+
+            return
+
+        self._populate(
+            self.data.summary,
+            self.data.snapshot,
+        )
+
+    # ---------------------------------------------------------
+
+    def _populate(self, summary, snapshot):
+
+        # -----------------------------------------------------
+        # Header
+        # -----------------------------------------------------
+
+        self.header.set_status(
+            f"Risk Engine : {summary.engine_status}",
+          "#22C55E",
+        )
+
+        # -----------------------------------------------------
+        # Executive Cards
+        # -----------------------------------------------------
+
+        self.cards.load(
+            risk_score=summary.display_score,
+            health=summary.health,
+            exposure=self._money(summary.total_exposure),
+            mtm=self._money(summary.total_mtm),
+            margin=summary.margin_utilization_percent,
+            diversification=summary.diversification_score,
+        )
+
+        # -----------------------------------------------------
+        # Latest Snapshot
+        # -----------------------------------------------------
+
+        # NOTE:
+        # Once DashboardService exposes SnapshotMetadata,
+        # replace this with:
+        #
+        # self.snapshot_panel.load(summary.snapshot)
+        #
+        # For now we clear it.
+
+        self.snapshot_panel.load(snapshot)
+
+        # -----------------------------------------------------
+        # Risk Summary
+        # -----------------------------------------------------
+
+        self.summary_panel.load(
+            risk_score=summary.display_score,
+            health=summary.health,
+            margin_utilization=summary.margin_utilization_percent,
+            diversification=summary.diversification_score,
+            top_client=summary.top_client_concentration_percent,
+            top_symbol=summary.top_symbol_concentration_percent,
+        )
+
+        # -----------------------------------------------------
+        # Tables
+        # -----------------------------------------------------
+
+        self.client_table.load_items(
+            summary.top_clients,
+        )
+
+        self.symbol_table.load_items(
+            summary.top_symbols,
+        )
+
+        # -----------------------------------------------------
+        # Alerts
+        # -----------------------------------------------------
+
+        self.alert_panel.load_alerts(
+            summary.alerts,
+        )
+
+        # -----------------------------------------------------
+        # Footer
+        # -----------------------------------------------------
+
+        self.footer.load(
+            snapshot=summary.snapshot_id or "Current",
+            refresh=self._time(summary.last_refresh),
+            portfolio=f"{summary.clients} Clients",
+            engine=summary.engine_status,
+        )
+
+        self.empty_label.configure(text="")
+
+    # ---------------------------------------------------------
+
+    def _empty(
+        self,
+        message: str,
+    ):
+
+        self.cards.clear()
+
+        self.snapshot_panel.clear()
+
+        self.summary_panel.clear()
+
+        self.client_table.load_items([])
+
+        self.symbol_table.load_items([])
+
+        self.alert_panel.load_alerts([])
+
+        self.footer.clear()
+
+        self.header.set_status(
+            "Risk Engine : Waiting",
+            "#3B82F6",
+        )
+
+        self.empty_label.configure(
+            text=message,
+        )
+
+    # ---------------------------------------------------------
+    # Helpers
+    # ---------------------------------------------------------
+
+    @staticmethod
+    def _money(value):
+
+        value = float(value)
+
+        sign = "-" if value < 0 else ""
+
+        value = abs(value)
+
+        if value >= 1e7:
+            return f"{sign}₹{value/1e7:.2f} Cr"
+
+        if value >= 1e5:
+            return f"{sign}₹{value/1e5:.2f} L"
+
+        return f"{sign}₹{value:,.2f}"
+
+    @staticmethod
+    def _time(value):
+
+        if not value:
+            return "--"
+
         try:
-            data=self.dashboard_service.get_dashboard_data()
-            if not data.available or data.summary is None:self._empty(data.message); return
-            self._populate(data.summary); self.empty_label.configure(text='')
-        finally:self.refresh_button.configure(state='normal',text='Refresh')
-    def _empty(self,msg):
-        for c in self.metric_cards.values():c.set_data('--','Import an MTF file to calculate risk','Neutral')
-        self.client_table.load_items([]); self.symbol_table.load_items([]); self.alert_panel.load_alerts([]); self.header_status.configure(text='Risk Engine: Waiting',text_color='#3B82F6')
-        for l in self.footer_labels.values():l.configure(text='--')
-        self.empty_label.configure(text=msg)
-    def _populate(self,s):
-        color={'Healthy':'#22C55E','Warning':'#F59E0B','Critical':'#EF4444'}.get(s.health,'#3B82F6'); self.header_status.configure(text='Risk Engine: '+s.health.upper(),text_color=color)
-        self.metric_cards['score'].set_data(f'{s.display_score:.0f} / 100',f'Calculated score: {s.calculated_score:.2f}',s.health)
-        self.metric_cards['health'].set_data(s.health.upper(),{'Critical':'Immediate attention required','Warning':'Enhanced monitoring required','Healthy':'Within configured thresholds'}.get(s.health,'Risk status unavailable'),s.health)
-        self.metric_cards['exposure'].set_data(self._money(s.total_exposure),f'{s.clients:,} clients • {s.symbols:,} symbols','Neutral')
-        self.metric_cards['mtm'].set_data(self._money(s.total_mtm),f'{s.mtm_loss_percent:.2f}% loss of exposure',self._mtm_status(s.mtm_loss_percent))
-        self.metric_cards['margin'].set_data(f'{s.margin_utilization_percent:.2f}%',f'Margin: {self._money(s.total_margin)}',self._margin_status(s.margin_utilization_percent))
-        self.metric_cards['diversification'].set_data(f'{s.diversification_score:.2f} / 100',f'Client {s.top_client_concentration_percent:.2f}% • Symbol {s.top_symbol_concentration_percent:.2f}%',self._div_status(s.diversification_score))
-        self.client_table.load_items(s.top_clients); self.symbol_table.load_items(s.top_symbols); self.alert_panel.load_alerts(s.alerts)
-        self.footer_labels['snapshot'].configure(text=s.snapshot_id or 'Current Portfolio'); self.footer_labels['refresh'].configure(text=self._time(s.last_refresh)); self.footer_labels['portfolio'].configure(text=f'{s.records:,} positions'); self.footer_labels['engine'].configure(text=s.engine_status)
-    @staticmethod
-    def _money(v):
-        a=abs(float(v)); sg='-' if v<0 else ''
-        if a>=1e7:return f'{sg}₹{a/1e7:.2f} Cr'
-        if a>=1e5:return f'{sg}₹{a/1e5:.2f} L'
-        return f'{sg}₹{a:,.2f}'
-    @staticmethod
-    def _time(v):
-        try:return datetime.fromisoformat(v).strftime('%d-%b-%Y %I:%M:%S %p')
-        except:return v or '--'
-    @staticmethod
-    def _mtm_status(p):return 'Critical' if p>=8 else 'Warning' if p>=5 else 'Healthy'
-    @staticmethod
-    def _margin_status(p):return 'Critical' if p>=80 else 'Warning' if p>=60 else 'Healthy'
-    @staticmethod
-    def _div_status(s):return 'Critical' if s<40 else 'Warning' if s<65 else 'Healthy'
+
+            from datetime import datetime
+
+            return datetime.fromisoformat(
+                str(value)
+            ).strftime("%d-%b-%Y %I:%M %p")
+
+        except Exception:
+
+            return str(value)
+
+    def generate_report(self):
+
+        if self.data is None or not self.data.available:
+            messagebox.showwarning(
+                "Executive Report",
+                "No dashboard data available.",
+                parent=self,
+            )
+            return
+
+        filename = filedialog.asksaveasfilename(
+            parent=self,
+            title="Save Executive Report",
+            defaultextension=".pdf",
+            initialfile="Executive_Risk_Report.pdf",
+            filetypes=[
+                ("PDF Files", "*.pdf"),
+            ],
+        )
+
+        if not filename:
+            return
+
+        try:
+
+            pdf = self.report_service.generate_executive_report(
+                self.data,
+                filename,
+            )
+
+            messagebox.showinfo(
+                "Executive Report",
+                f"Report generated successfully.\n\n{pdf}",
+                parent=self,
+            )
+
+            try:
+
+                if sys.platform.startswith("win"):
+                    os.startfile(pdf)
+
+                elif sys.platform == "darwin":
+                    subprocess.call(["open", pdf])
+
+                else:
+                    subprocess.call(["xdg-open", pdf])
+
+            except Exception:
+                pass
+
+        except Exception as exc:
+
+            messagebox.showerror(
+                "Executive Report",
+                str(exc),
+                parent=self,
+            )    
