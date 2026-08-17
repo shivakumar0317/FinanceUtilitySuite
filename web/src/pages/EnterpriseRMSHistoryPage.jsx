@@ -153,7 +153,7 @@ function ComparisonMetric({
         </Typography>
 
         <Typography color="text.secondary">
-          â†’
+          →
         </Typography>
 
         <Typography variant="body2" fontWeight={800}>
@@ -884,7 +884,7 @@ export default function EnterpriseRMSHistoryPage() {
                           oldestSnapshot && latestSnapshot
                             ? `${formatNumber(
                                 oldestSnapshot.risk_score,
-                              )} â†’ ${formatNumber(latestSnapshot.risk_score)}`
+                              )} → ${formatNumber(latestSnapshot.risk_score)}`
                             : "Insufficient data"
                         }
                         icon={
@@ -1007,7 +1007,7 @@ export default function EnterpriseRMSHistoryPage() {
                       <RiskInsightCard
                         title="Exposure Movement"
                         value={formatCurrency(historicalExposureChange)}
-                        subtitle="Oldest snapshot â†’ latest snapshot"
+                        subtitle="Oldest snapshot → latest snapshot"
                         icon={
                           historicalExposureChange <= 0 ? (
                             <TrendingDownIcon color="success" />
