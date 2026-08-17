@@ -20,9 +20,9 @@ class SectorClassifier:
         if market_cap <= 0:
             return "Unclassified"
         crores = market_cap / cls.INR_PER_CRORE if unit.lower() in {"rupees", "inr", "rs"} else market_cap
-        if crores > 20_000:
+        if crores >= 20_000:
             return "Large Cap"
-        if crores > 5_000:
+        if crores >= 5_000:
             return "Mid Cap"
         return "Small Cap"
 

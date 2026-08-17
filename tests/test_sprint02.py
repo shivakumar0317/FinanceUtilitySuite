@@ -3,9 +3,12 @@ from core.services.sector_classifier import SectorClassifier
 from core.services.yahoo_metadata_service import YahooMetadataService
 
 def main():
-    assert SectorClassifier.classify_market_cap(25000, "crore") == "Large Cap"
-    assert SectorClassifier.classify_market_cap(10000, "crore") == "Mid Cap"
-    assert SectorClassifier.classify_market_cap(5000, "crore") == "Small Cap"
+    assert SectorClassifier.classify_market_cap(4999, "crore") == "Small Cap"
+    assert SectorClassifier.classify_market_cap(5000, "crore") == "Mid Cap"
+    assert SectorClassifier.classify_market_cap(5001, "crore") == "Mid Cap"
+    assert SectorClassifier.classify_market_cap(19999, "crore") == "Mid Cap"
+    assert SectorClassifier.classify_market_cap(20000, "crore") == "Large Cap"
+    assert SectorClassifier.classify_market_cap(20001, "crore") == "Large Cap"
     assert YahooMetadataService.normalize_symbol(" reliance.ns ") == "RELIANCE"
     cache = CacheService("tests/test_stock_master_cache.json", 7)
     cache.clear(); cache.set("RELIANCE", {"company_name": "Reliance"})
