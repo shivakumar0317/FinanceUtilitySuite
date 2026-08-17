@@ -30,13 +30,32 @@ class HealthService:
             )
 
         if overall_score >= thresholds.overall_critical_score:
-            return "Critical", f"Overall risk score is {overall_score:.2f}/100."
+            return (
+                "Critical",
+                f"Overall risk score is {overall_score:.2f}/100.",
+            )
 
-        if (
-            mtm_loss_percent >= thresholds.mtm_warning_percent
-            or margin_utilization_percent >= thresholds.margin_warning_percent
-            or overall_score >= thresholds.overall_warning_score
-        ):
-            return "Warning", f"Overall risk score is {overall_score:.2f}/100."
+        if mtm_loss_percent >= thresholds.mtm_warning_percent:
+            return (
+                "Warning",
+                f"MTM loss is {mtm_loss_percent:.2f}% of exposure, above the "
+                f"{thresholds.mtm_warning_percent:.2f}% warning threshold.",
+            )
 
-        return "Healthy", f"Overall risk score is {overall_score:.2f}/100."
+        if margin_utilization_percent >= thresholds.margin_warning_percent:
+            return (
+                "Warning",
+                f"Margin utilization is {margin_utilization_percent:.2f}%, above the "
+                f"{thresholds.margin_warning_percent:.2f}% warning threshold.",
+            )
+
+        if overall_score >= thresholds.overall_warning_score:
+            return (
+                "Warning",
+                f"Overall risk score is {overall_score:.2f}/100.",
+            )
+
+        return (
+            "Healthy",
+            f"Overall risk score is {overall_score:.2f}/100.",
+        )    

@@ -200,10 +200,13 @@ class SnapshotService:
         """
         Compare two snapshots.
 
+        The first snapshot is treated as the baseline/older snapshot.
+        The second snapshot is treated as the newer/current snapshot.
+
         Returns
         -------
         dict
-        Summary of portfolio changes.
+            Management-friendly comparison of portfolio risk metrics.
         """
 
         first = self.repository.get_metadata(first_snapshot_id)
@@ -215,31 +218,103 @@ class SnapshotService:
         if second is None:
             raise FileNotFoundError(second_snapshot_id)
 
-        return {
-            "portfolio_value_change":
-            second.portfolio_value
-            - first.portfolio_value,
+        risk_score_change = (
+            second.risk_score - first.risk_score
+        )
 
-        "exposure_change":
+        exposure_change = (
             second.total_exposure
-            - first.total_exposure,
+            - first.total_exposure
+        )
 
-        "mtm_change":
+        mtm_change = (
             second.total_mtm
-            - first.total_mtm,
+            - first.total_mtm
+        )
 
-        "client_change":
+        margin_utilization_change = (
+            second.margin_utilization
+            - first.margin_utilization
+        )
+
+        diversification_change = (
+            second.diversification_score
+            - first.diversification_score
+        )
+
+        client_change = (
             second.clients
-            - first.clients,
+            - first.clients
+        )
 
-        "symbol_change":
+        symbol_change = (
             second.symbols
-            - first.symbols,
+            - first.symbols
+        )
 
-        "record_change":
+        record_change = (
             second.records
-            - first.records,
-    }
+            - first.records
+        )
+
+        # -----------------------------------------------------
+        # Overall risk interpretation
+        # -----------------------------------------------------
+        #
+        # Lower risk score = better
+        # Lower margin utilization = better
+        # Higher diversification = better
+        # Less-negative MTM = better
+        #
+        # Use the risk score as the primary indicator.
+        # -----------------------------------------------------
+
+        if risk_score_change < -0.50:
+            risk_trend = "Improved"
+        elif risk_score_change > 0.50:
+            risk_trend = "Worsened"
+        else:
+            risk_trend = "Stable"
+
+        return {
+            "first_snapshot_id": first_snapshot_id,
+            "second_snapshot_id": second_snapshot_id,
+
+            "first_business_date": first.business_date,
+            "second_business_date": second.business_date,
+
+            "first_risk_score": first.risk_score,
+            "second_risk_score": second.risk_score,
+            "risk_score_change": risk_score_change,
+
+            "first_health": first.health,
+            "second_health": second.health,
+
+            "portfolio_value_change": (
+                second.portfolio_value
+                - first.portfolio_value
+            ),
+
+            "exposure_change": exposure_change,
+
+            "mtm_change": mtm_change,
+
+            "margin_utilization_change": (
+                margin_utilization_change
+            ),
+
+            "diversification_change": (
+                diversification_change
+            ),
+
+            "client_change": client_change,
+
+            "symbol_change": symbol_change,
+
+            "record_change": record_change,
+
+            "risk_trend": risk_trend,
+        }
 
     def list_snapshots(
         self,

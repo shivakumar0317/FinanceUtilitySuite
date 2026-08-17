@@ -14,10 +14,21 @@ class RiskConcentrationService:
     def _prepared(dataframe: pd.DataFrame) -> pd.DataFrame:
         frame = dataframe.copy()
 
-        if "Exposure" in frame.columns:
-            frame["_Exposure"] = numeric_series(frame, "Exposure").abs()
+        if "BUY VALUE" in frame.columns:
+            frame["_Exposure"] = numeric_series(
+                frame,
+                "BUY VALUE",
+            ).abs()
+        elif "Exposure" in frame.columns:
+            frame["_Exposure"] = numeric_series(
+                frame,
+                "Exposure",
+            ).abs()
         else:
-            frame["_Exposure"] = numeric_series(frame, "NetValue").abs()
+            frame["_Exposure"] = numeric_series(
+                frame,
+                "NetValue",
+            ).abs()
 
         frame["_MTM"] = numeric_series(frame, "MarkToMarket")
 
@@ -89,7 +100,10 @@ class RiskConcentrationService:
         thresholds: RiskThresholds,
         limit: int,
     ) -> list[RiskItem]:
-        summary = cls.group_summary(dataframe, group_column).head(limit)
+        summary = cls.group_summary(
+            dataframe,
+            group_column,
+        ).head(limit)
 
         if group_column == "AccountId":
             warning = thresholds.client_concentration_warning_percent
@@ -99,21 +113,39 @@ class RiskConcentrationService:
             critical = thresholds.symbol_concentration_critical_percent
 
         items: list[RiskItem] = []
-        for row in summary.itertuples(index=False):
-            name = str(getattr(row, group_column))
-            exposure = float(row.Exposure)
-            mtm = float(row.MTM)
-            concentration = float(getattr(row, "_3", 0.0))
-            score = band_score(concentration, warning, critical)
-            level = "Critical" if score >= 70 else "Warning" if score >= 40 else "Healthy"
+
+        for _, row in summary.iterrows():
+            name = str(row[group_column])
+            exposure = float(row["Exposure"])
+            mtm = float(row["MTM"])
+            concentration = float(row["Concentration %"])
+
+            score = band_score(
+                concentration,
+                warning,
+                critical,
+            )
+
+            level = (
+                "Critical"
+                if concentration >= critical
+                else "Warning"
+                if concentration >= warning
+                else "Healthy"
+            )
+
             items.append(
                 RiskItem(
                     name=name,
                     exposure=round(exposure, 2),
                     mtm=round(mtm, 2),
-                    concentration_percent=round(concentration, 2),
+                    concentration_percent=round(
+                        concentration,
+                        2,
+                    ),
                     score=round(score, 2),
                     level=level,
                 )
             )
+
         return items

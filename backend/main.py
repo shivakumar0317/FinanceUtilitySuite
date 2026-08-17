@@ -28,7 +28,10 @@ from backend.performance_settings import get_performance_settings
 from backend.security import register_security_middleware
 from backend.performance_runtime import configure_performance_runtime
 from backend.api.performance_routes import router as performance_router
+from backend.api.dashboard_routes import router as dashboard_router
+from backend.api.snapshot_routes import router as snapshot_router
 from backend.utils.cache import configure_cache, get_cache
+
 
 settings = get_settings()
 performance = get_performance_settings()
@@ -49,9 +52,10 @@ register_exception_handlers(app)
 for router in (
     system_router, auth_router, portfolio_router, analytics_router,
     market_router, market_dashboard_router, watchlist_router, stock_router,
-    portfolio_live_router, risk_analytics_router, mtf_router,
+    portfolio_live_router, risk_analytics_router, mtf_router, dashboard_router, snapshot_router,
 ):
     app.include_router(router)
+
 app.include_router(performance_router)
 
 @app.on_event("startup")

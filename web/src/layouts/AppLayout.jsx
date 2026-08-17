@@ -1,6 +1,7 @@
 import {
   AccountBalance,
   AccountBalanceWallet,
+  AdminPanelSettings,
   Analytics,
   Brightness4,
   Brightness7,
@@ -85,6 +86,11 @@ const navigation = [
     label: "MTF Dashboard",
     path: "/mtf-dashboard",
     icon: <AccountBalance />,
+  },
+  {
+    label: "Enterprise RMS",
+    path: "/enterprise-rms",
+    icon: <AdminPanelSettings />,
   },
 ];
 
