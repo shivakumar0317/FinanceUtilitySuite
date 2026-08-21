@@ -1,4 +1,7 @@
+import { useState } from "react";
+
 import {
+  Box,
   Card,
   CardContent,
   Grid,
@@ -67,10 +70,163 @@ const bodyCellSx = {
   fontVariantNumeric: "tabular-nums",
 };
 
+const getSortValue = (row, key) => {
+  if (
+    key === "AccountId" ||
+    key === "Largest Stock" ||
+    key === "Risk Level"
+  ) {
+    return String(row[key] || "").toLowerCase();
+  }
+
+  const value = Number(row[key] ?? 0);
+  return Number.isNaN(value) ? 0 : value;
+};
+
+const sortRows = (rows, sortKey, sortDirection) => {
+  if (!sortKey) {
+    return rows || [];
+  }
+
+  return [...(rows || [])].sort((a, b) => {
+    const aValue = getSortValue(a, sortKey);
+    const bValue = getSortValue(b, sortKey);
+
+    if (typeof aValue === "string") {
+      const comparison = aValue.localeCompare(
+        bValue,
+        undefined,
+        { numeric: true, sensitivity: "base" },
+      );
+      return sortDirection === "asc" ? comparison : -comparison;
+    }
+
+    if (aValue === bValue) {
+      return 0;
+    }
+
+    const comparison = aValue < bValue ? -1 : 1;
+    return sortDirection === "asc" ? comparison : -comparison;
+  });
+};
+
+function SortableHeaderCell({
+  label,
+  sortKey,
+  sortBy,
+  sortDirection,
+  onSort,
+  align = "left",
+  sx,
+}) {
+  const active = sortBy === sortKey;
+  const arrow = active
+    ? sortDirection === "asc"
+      ? "▲"
+      : "▼"
+    : "↕";
+
+  return (
+    <TableCell
+      align={align}
+      sx={{
+        ...headerCellSx,
+        ...sx,
+        p: 0,
+      }}
+    >
+      <Box
+        component="button"
+        type="button"
+        onClick={() => onSort(sortKey)}
+        aria-label={`Sort ${label}`}
+        sx={{
+          width: "100%",
+          minHeight: 40,
+          display: "flex",
+          alignItems: "center",
+          justifyContent:
+            align === "right"
+              ? "flex-end"
+              : align === "center"
+                ? "center"
+                : "flex-start",
+          gap: 0.7,
+          px: 1,
+          py: 0.75,
+          border: 0,
+          background: "transparent",
+          color: active
+            ? "text.primary"
+            : "text.secondary",
+          font: "inherit",
+          fontWeight: 700,
+          fontSize: "inherit",
+          textTransform: "uppercase",
+          letterSpacing: "inherit",
+          cursor: "pointer",
+          userSelect: "none",
+          textAlign: align,
+          "&:hover": {
+            color: "text.primary",
+            backgroundColor:
+              "rgba(96, 165, 250, 0.10)",
+          },
+          "&:focus-visible": {
+            outline: "2px solid",
+            outlineColor: "primary.main",
+            outlineOffset: "-2px",
+          },
+        }}
+      >
+        <Box component="span">{label}</Box>
+        <Box
+          component="span"
+          sx={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minWidth: 12,
+            fontSize: active ? "0.72rem" : "0.68rem",
+            lineHeight: 1,
+            opacity: active ? 1 : 0.55,
+            color: active
+              ? "primary.main"
+              : "text.secondary",
+          }}
+        >
+          {arrow}
+        </Box>
+      </Box>
+    </TableCell>
+  );
+}
+
 function ClientTable({
   title,
   rows,
 }) {
+  const [sortBy, setSortBy] = useState(null);
+  const [sortDirection, setSortDirection] = useState("asc");
+
+  const handleSort = (key) => {
+    if (sortBy === key) {
+      setSortDirection((current) =>
+        current === "asc" ? "desc" : "asc",
+      );
+      return;
+    }
+
+    setSortBy(key);
+    setSortDirection("asc");
+  };
+
+  const sortedRows = sortRows(
+    rows,
+    sortBy,
+    sortDirection,
+  );
+
   return (
     <Card
       sx={{
@@ -136,56 +292,71 @@ function ClientTable({
           >
             <TableHead>
               <TableRow>
-                <TableCell
-                  sx={{ ...headerCellSx, width: "14%" }}
-                >
-                  Account
-                </TableCell>
-
-                <TableCell
+                <SortableHeaderCell
+                  label="Account"
+                  sortKey="AccountId"
+                  sortBy={sortBy}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
+                  sx={{ width: "14%" }}
+                />
+                <SortableHeaderCell
+                  label="Holdings"
+                  sortKey="Holdings"
+                  sortBy={sortBy}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
                   align="center"
-                  sx={{ ...headerCellSx, width: "8%" }}
-                >
-                  Holdings
-                </TableCell>
-
-                <TableCell
-                  sx={{ ...headerCellSx, width: "20%" }}
-                >
-                  Largest Stock
-                </TableCell>
-
-                <TableCell
+                  sx={{ width: "8%" }}
+                />
+                <SortableHeaderCell
+                  label="Largest Stock"
+                  sortKey="Largest Stock"
+                  sortBy={sortBy}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
+                  sx={{ width: "20%" }}
+                />
+                <SortableHeaderCell
+                  label="Concentration"
+                  sortKey="Largest Holding %"
+                  sortBy={sortBy}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
                   align="right"
-                  sx={{ ...headerCellSx, width: "16%" }}
-                >
-                  Concentration
-                </TableCell>
-
-                <TableCell
+                  sx={{ width: "16%" }}
+                />
+                <SortableHeaderCell
+                  label="Exposure"
+                  sortKey="Largest Exposure"
+                  sortBy={sortBy}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
                   align="right"
-                  sx={{ ...headerCellSx, width: "16%" }}
-                >
-                  Exposure
-                </TableCell>
-
-                <TableCell
+                  sx={{ width: "16%" }}
+                />
+                <SortableHeaderCell
+                  label="MTM"
+                  sortKey="MarkToMarket"
+                  sortBy={sortBy}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
                   align="right"
-                  sx={{ ...headerCellSx, width: "16%" }}
-                >
-                  MTM
-                </TableCell>
-
-                <TableCell
-                  sx={{ ...headerCellSx, width: "10%" }}
-                >
-                  Risk
-                </TableCell>
+                  sx={{ width: "16%" }}
+                />
+                <SortableHeaderCell
+                  label="Risk"
+                  sortKey="Risk Level"
+                  sortBy={sortBy}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
+                  sx={{ width: "10%" }}
+                />
               </TableRow>
             </TableHead>
 
             <TableBody>
-              {(rows || []).map((row, index) => (
+              {sortedRows.map((row, index) => (
                 <TableRow
                   key={`${row.AccountId}-${index}`}
                 >
@@ -288,6 +459,27 @@ function ClientTable({
 }
 
 function SummaryTable({ rows }) {
+  const [sortBy, setSortBy] = useState(null);
+  const [sortDirection, setSortDirection] = useState("asc");
+
+  const handleSort = (key) => {
+    if (sortBy === key) {
+      setSortDirection((current) =>
+        current === "asc" ? "desc" : "asc",
+      );
+      return;
+    }
+
+    setSortBy(key);
+    setSortDirection("asc");
+  };
+
+  const sortedRows = sortRows(
+    rows,
+    sortBy,
+    sortDirection,
+  );
+
   return (
     <Card
       sx={{
@@ -353,63 +545,80 @@ function SummaryTable({ rows }) {
           >
             <TableHead>
               <TableRow>
-                <TableCell
-                  sx={{ ...headerCellSx, width: "11%" }}
-                >
-                  Account
-                </TableCell>
-
-                <TableCell
+                <SortableHeaderCell
+                  label="Account"
+                  sortKey="AccountId"
+                  sortBy={sortBy}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
+                  sx={{ width: "11%" }}
+                />
+                <SortableHeaderCell
+                  label="Holdings"
+                  sortKey="Holdings"
+                  sortBy={sortBy}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
                   align="center"
-                  sx={{ ...headerCellSx, width: "7%" }}
-                >
-                  Holdings
-                </TableCell>
-
-                <TableCell
-                  sx={{ ...headerCellSx, width: "14%" }}
-                >
-                  Largest Stock
-                </TableCell>
-
-                <TableCell
+                  sx={{ width: "7%" }}
+                />
+                <SortableHeaderCell
+                  label="Largest Stock"
+                  sortKey="Largest Stock"
+                  sortBy={sortBy}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
+                  sx={{ width: "14%" }}
+                />
+                <SortableHeaderCell
+                  label="Largest Exposure"
+                  sortKey="Largest Exposure"
+                  sortBy={sortBy}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
                   align="right"
-                  sx={{ ...headerCellSx, width: "14%" }}
-                >
-                  Largest Exposure
-                </TableCell>
-
-                <TableCell
+                  sx={{ width: "14%" }}
+                />
+                <SortableHeaderCell
+                  label="Concentration"
+                  sortKey="Largest Holding %"
+                  sortBy={sortBy}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
                   align="right"
-                  sx={{ ...headerCellSx, width: "12%" }}
-                >
-                  Concentration
-                </TableCell>
-
-                <TableCell
+                  sx={{ width: "12%" }}
+                />
+                <SortableHeaderCell
+                  label="Total Exposure"
+                  sortKey="Total Exposure"
+                  sortBy={sortBy}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
                   align="right"
-                  sx={{ ...headerCellSx, width: "14%" }}
-                >
-                  Total Exposure
-                </TableCell>
-
-                <TableCell
+                  sx={{ width: "14%" }}
+                />
+                <SortableHeaderCell
+                  label="MTM"
+                  sortKey="MarkToMarket"
+                  sortBy={sortBy}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
                   align="right"
-                  sx={{ ...headerCellSx, width: "14%" }}
-                >
-                  MTM
-                </TableCell>
-
-                <TableCell
-                  sx={{ ...headerCellSx, width: "8%" }}
-                >
-                  Risk
-                </TableCell>
+                  sx={{ width: "14%" }}
+                />
+                <SortableHeaderCell
+                  label="Risk"
+                  sortKey="Risk Level"
+                  sortBy={sortBy}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
+                  sx={{ width: "8%" }}
+                />
               </TableRow>
             </TableHead>
 
             <TableBody>
-              {(rows || []).map((row, index) => {
+              {sortedRows.map((row, index) => {
                 const mtm = Number(
                   row.MarkToMarket || 0,
                 );
