@@ -63,13 +63,36 @@ export default function EnterpriseRMSPage() {
   const formatPercent = (value) =>
     `${Number(value ?? 0).toFixed(2)}%`;
 
+  const formatCrores = (value) => {
+    const amount = Number(value ?? 0);
+    return `₹${(amount / 10000000).toFixed(2)} Cr`;
+  };
+
   const MetricCard = ({ title, value, subtitle }) => (
-    <Card sx={{ height: "100%" }}>
-      <CardContent>
+    <Card
+      sx={{
+        height: "100%",
+        minWidth: 0,
+      }}
+    >
+      <CardContent
+        sx={{
+          p: { xs: 1.75, sm: 2 },
+          "&:last-child": {
+            pb: { xs: 1.75, sm: 2 },
+          },
+          minWidth: 0,
+        }}
+      >
         <Typography
           variant="body2"
           color="text.secondary"
           gutterBottom
+          sx={{
+            minHeight: { xs: "auto", sm: 22 },
+            lineHeight: 1.25,
+            overflowWrap: "anywhere",
+          }}
         >
           {title}
         </Typography>
@@ -77,6 +100,22 @@ export default function EnterpriseRMSPage() {
         <Typography
           variant="h5"
           fontWeight={800}
+          sx={{
+            fontSize: {
+              xs: "1.25rem",
+              sm: "1.35rem",
+              md: "1.5rem",
+              lg: "1.55rem",
+            },
+            lineHeight: 1.15,
+            whiteSpace: "normal",
+            overflow: "visible",
+            textOverflow: "clip",
+            overflowWrap: "anywhere",
+            wordBreak: "break-word",
+            letterSpacing: "-0.02em",
+            fontVariantNumeric: "tabular-nums",
+          }}
         >
           {value}
         </Typography>
@@ -85,6 +124,12 @@ export default function EnterpriseRMSPage() {
           <Typography
             variant="caption"
             color="text.secondary"
+            sx={{
+              display: "block",
+              mt: 0.5,
+              lineHeight: 1.25,
+              overflowWrap: "anywhere",
+            }}
           >
             {subtitle}
           </Typography>
@@ -189,7 +234,7 @@ export default function EnterpriseRMSPage() {
       </Alert>
 
       {/* Summary Cards */}
-      <Grid container spacing={2}>
+      <Grid container spacing={2} sx={{ alignItems: "stretch" }}>
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
           <MetricCard
             title="Risk Score"
@@ -203,9 +248,7 @@ export default function EnterpriseRMSPage() {
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
           <MetricCard
             title="Total Exposure"
-            value={`₹${formatNumber(
-              summary.total_exposure,
-            )}`}
+            value={formatCrores(summary.total_exposure)}
             subtitle="Current exposure"
           />
         </Grid>
@@ -213,9 +256,7 @@ export default function EnterpriseRMSPage() {
         <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
           <MetricCard
             title="Total MTM"
-            value={`₹${formatNumber(
-              summary.total_mtm,
-            )}`}
+            value={formatCrores(summary.total_mtm)}
             subtitle="Mark-to-market"
           />
         </Grid>

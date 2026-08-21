@@ -11,6 +11,7 @@ from backend.api.auth_routes import router as auth_router
 from backend.api.market_dashboard_routes import router as market_dashboard_router
 from backend.api.market_routes import router as market_router
 from backend.api.mtf_routes import router as mtf_router
+from backend.api.mtf_concentration_routes import (router as mtf_concentration_router,)
 from backend.api.portfolio_live_routes import router as portfolio_live_router
 from backend.api.portfolio_routes import router as portfolio_router
 from backend.api.risk_analytics_routes import router as risk_analytics_router
@@ -52,7 +53,7 @@ register_exception_handlers(app)
 for router in (
     system_router, auth_router, portfolio_router, analytics_router,
     market_router, market_dashboard_router, watchlist_router, stock_router,
-    portfolio_live_router, risk_analytics_router, mtf_router, dashboard_router, snapshot_router,
+    portfolio_live_router, risk_analytics_router, mtf_router, mtf_concentration_router, dashboard_router, snapshot_router,
 ):
     app.include_router(router)
 

@@ -16,13 +16,26 @@ router = APIRouter(prefix="/api/mtf", tags=["MTF Dashboard"])
 
 
 def _restore(db: Session, user_id: int) -> bool:
-    return PersistentUploadService.restore_cache(
+    restored = PersistentUploadService.restore_cache(
         db,
         user_id=user_id,
         dataset_type=PersistentUploadService.MTF,
         cache=WebMTFService._datasets,
         lock=WebMTFService._lock,
     )
+
+    if not restored:
+        return False
+
+    with WebMTFService._lock:
+        dataframe = WebMTFService._datasets[user_id].copy()
+
+    enriched = WebMTFService._enrich_cap_category(dataframe)
+
+    with WebMTFService._lock:
+        WebMTFService._datasets[user_id] = enriched
+
+    return True
 
 
 @router.post("/upload", response_model=MTFDashboardResponse)

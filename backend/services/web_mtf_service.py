@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from fastapi import UploadFile
 
+from core.services.stock_master_service import StockMasterService
 
 class WebMTFService:
     """MTF upload, validation and dashboard calculations."""
@@ -42,6 +43,78 @@ class WebMTFService:
     _lock = Lock()
 
     @classmethod
+    def _enrich_cap_category(
+        cls,
+        dataframe: pd.DataFrame,
+    ) -> pd.DataFrame:
+        """
+        Enrich MTF rows with cached market-cap category.
+
+        Important:
+        Do NOT perform live Yahoo Finance calls during MTF upload.
+        MTF upload must remain fast and should use existing Stock Master
+        cache data only.
+        """
+
+        result = dataframe.copy()
+
+        symbols = (
+            result["SYMBOL"]
+            .dropna()
+            .astype(str)
+            .str.strip()
+            .str.upper()
+            .unique()
+            .tolist()
+        )
+
+        if not symbols:
+            result["CAP_CATEGORY"] = "Unclassified"
+            return result
+
+        stock_master = StockMasterService()
+        category_map: dict[str, str] = {}
+
+        for symbol in symbols:
+            try:
+                # Prefer fresh cache.
+                record = stock_master.cache.get(symbol)
+
+                # If fresh cache is unavailable, allow stale cache.
+                if record is None:
+                    record = stock_master.cache.get_any(symbol)
+
+                if record:
+                    category = record.get("scrip_category")
+
+                    if not category:
+                        market_cap = record.get("market_cap", 0)
+
+                        try:
+                            market_cap = float(market_cap or 0)
+                        except (TypeError, ValueError):
+                            market_cap = 0.0
+
+                        from core.services.sector_classifier import SectorClassifier
+
+                        category = SectorClassifier.classify_market_cap(
+                            market_cap
+                        )
+
+                    category_map[symbol] = category or "Unclassified"
+
+            except Exception:
+                category_map[symbol] = "Unclassified"
+
+        result["SCRIP_CATEGORY"] = (
+            result["SYMBOL"]
+            .map(category_map)
+            .fillna("Unclassified")
+        )
+
+        return result
+
+    @classmethod
     async def upload(
         cls,
         user_id: int,
@@ -49,6 +122,7 @@ class WebMTFService:
     ) -> dict:
         dataframe = await cls._read_upload(file)
         normalized = cls._normalize(dataframe)
+        normalized = cls._enrich_cap_category(normalized)
 
         with cls._lock:
             cls._datasets[user_id] = normalized
@@ -61,6 +135,7 @@ class WebMTFService:
 
         summary = cls._summary(dataframe)
         margin_distribution = cls._margin_distribution(dataframe)
+        cap_net_value_distribution = cls._cap_net_value_distribution(dataframe)
         symbol_exposure = cls._symbol_exposure(dataframe)
         top_margin_clients = cls._top_margin_clients(dataframe)
         top_margin_symbols = cls._top_margin_symbols(dataframe)
@@ -71,6 +146,7 @@ class WebMTFService:
         return {
             "summary": summary,
             "margin_distribution": margin_distribution,
+            "cap_net_value_distribution": cap_net_value_distribution,
             "symbol_exposure": symbol_exposure,
             "top_margin_clients": top_margin_clients,
             "top_margin_symbols": top_margin_symbols,
@@ -97,7 +173,15 @@ class WebMTFService:
                     "Upload an MTF Excel or CSV file first."
                 )
 
-            return dataframe.copy()
+            result = dataframe.copy()
+
+        # Backward compatibility:
+        # Older saved MTF datasets do not contain CAP_CATEGORY.
+        # Enrich them from the Stock Master cache when required.
+        if "CAP_CATEGORY" not in result.columns:
+            result = cls._enrich_cap_category(result)
+
+        return result
 
     @classmethod
     async def _read_upload(
@@ -292,6 +376,57 @@ class WebMTFService:
                     float(row["margin_value"]),
                     2,
                 ),
+            }
+            for _, row in grouped.iterrows()
+        ]
+
+    @staticmethod
+    def _cap_net_value_distribution(
+        dataframe: pd.DataFrame,
+    ) -> list[dict]:
+        grouped = (
+            dataframe.groupby(
+                "SCRIP_CATEGORY",
+                as_index=False,
+            )
+            .agg(
+                net_value=("NETVALUE", "sum"),
+                symbols=("SYMBOL", "nunique"),
+            )
+        )
+
+        category_order = [
+            "Large Cap",
+            "Mid Cap",
+            "Small Cap",
+            "Unclassified",
+        ]
+
+        grouped["sort_order"] = (
+            grouped["SCRIP_CATEGORY"]
+            .map(
+                {
+                    category: index
+                    for index, category in enumerate(
+                        category_order
+                    )
+                }
+            )
+            .fillna(len(category_order))
+        )
+
+        grouped = grouped.sort_values("sort_order")
+
+        return [
+            {
+                "cap_category": str(
+                    row["SCRIP_CATEGORY"]
+                ),
+                "net_value": round(
+                    float(row["net_value"]),
+                    2,
+                ),
+                "symbols": int(row["symbols"]),
             }
             for _, row in grouped.iterrows()
         ]

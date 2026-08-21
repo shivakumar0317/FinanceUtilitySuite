@@ -15,7 +15,7 @@ import MTFClientRiskTable from "../components/MTFClientRiskTable";
 import MTFDataTables from "../components/MTFDataTables";
 import MTFMarginDistributionChart from "../components/MTFMarginDistributionChart";
 import MTFSummaryCards from "../components/MTFSummaryCards";
-import MTFSymbolExposureChart from "../components/MTFSymbolExposureChart";
+import MTFCapNetValueChart from "../components/MTFCapNetValueChart";
 import MTFUploadCard from "../components/MTFUploadCard";
 import api from "../services/api";
 
@@ -113,6 +113,7 @@ export default function MTFDashboardPage() {
         uploading={upload.isPending}
         error={
           upload.error?.response?.data?.detail ||
+          upload.error?.message ||
           (upload.isError
             ? "Unable to upload MTF file."
             : "")
@@ -158,8 +159,8 @@ export default function MTFDashboardPage() {
             </Grid>
 
             <Grid size={{ xs: 12, lg: 6 }}>
-              <MTFSymbolExposureChart
-                data={dashboardData.symbol_exposure}
+              <MTFCapNetValueChart
+                data={dashboardData.cap_net_value_distribution}
               />
             </Grid>
           </Grid>

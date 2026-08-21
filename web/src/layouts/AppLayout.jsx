@@ -3,6 +3,7 @@ import {
   AccountBalanceWallet,
   AdminPanelSettings,
   Analytics,
+  Assessment,
   Brightness4,
   Brightness7,
   Dashboard,
@@ -86,6 +87,16 @@ const navigation = [
     label: "MTF Dashboard",
     path: "/mtf-dashboard",
     icon: <AccountBalance />,
+  },
+  {
+  label: "MTF Concentration",
+  path: "/mtf-concentration",
+  icon: <Assessment />,
+  },
+  {
+  label: "Historical Risk Analytics",
+  path: "/enterprise-rms/history",
+  icon: <Assessment />,
   },
   {
     label: "Enterprise RMS",

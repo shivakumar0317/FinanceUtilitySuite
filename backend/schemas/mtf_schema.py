@@ -21,6 +21,10 @@ class MarginDistributionItem(BaseModel):
     clients: int
     margin_value: float
 
+class CapNetValueDistributionItem(BaseModel):
+    cap_category: str
+    net_value: float
+    symbols: int
 
 class SymbolExposureItem(BaseModel):
     symbol: str
@@ -73,6 +77,7 @@ class ClientRiskItem(BaseModel):
 class MTFDashboardResponse(BaseModel):
     summary: MTFSummary
     margin_distribution: list[MarginDistributionItem]
+    cap_net_value_distribution: list[CapNetValueDistributionItem]
     symbol_exposure: list[SymbolExposureItem]
     top_margin_clients: list[TopMarginClientItem]
     top_margin_symbols: list[TopMarginSymbolItem]

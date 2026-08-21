@@ -2,6 +2,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  LabelList,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -13,18 +14,23 @@ import {
   Typography,
 } from "@mui/material";
 
-export default function MTFSymbolExposureChart({ data }) {
+export default function MTFCapNetValueChart({ data }) {
   const chartData = (data || []).map((item) => ({
     cap_category: item.cap_category,
-    margin: Number(item.margin || 0),
+    net_value: Number(item.net_value || 0),
     symbols: Number(item.symbols || 0),
   }));
+
+  const totalNetValue = chartData.reduce(
+    (sum, item) => sum + item.net_value,
+    0,
+  );
 
   return (
     <Card sx={{ height: "100%" }}>
       <CardContent>
         <Typography variant="h6" fontWeight={700} mb={2}>
-          MTF Split-Up — MTF Margin
+          Market Cap
         </Typography>
 
         <ResponsiveContainer width="100%" height={340}>
@@ -33,7 +39,7 @@ export default function MTFSymbolExposureChart({ data }) {
             layout="vertical"
             margin={{
               top: 5,
-              right: 30,
+              right: 90,
               left: 10,
               bottom: 5,
             }}
@@ -46,27 +52,21 @@ export default function MTFSymbolExposureChart({ data }) {
             <XAxis
               type="number"
               tickFormatter={(value) =>
-                `₹${(value / 10000000).toFixed(2)} Cr`
+                `₹${(value / 10000000).toFixed(1)} Cr`
               }
             />
 
             <YAxis
               dataKey="cap_category"
               type="category"
-              width={110}
+              width={130}
             />
 
             <Tooltip
-              formatter={(value, name, props) => {
-                if (name === "MTF Margin") {
-                  return [
-                    `₹${(Number(value) / 10000000).toFixed(2)} Cr`,
-                    name,
-                  ];
-                }
-
-                return [value, name];
-              }}
+              formatter={(value) => [
+                `₹${(Number(value) / 10000000).toFixed(2)} Cr`,
+                "Net Value",
+              ]}
               labelFormatter={(label) => {
                 const item = chartData.find(
                   (row) => row.cap_category === label,
@@ -79,11 +79,25 @@ export default function MTFSymbolExposureChart({ data }) {
             />
 
             <Bar
-              dataKey="margin"
-              name="MTF Margin"
+              dataKey="net_value"
+              name="Net Value"
               fill="#22c55e"
               radius={[0, 5, 5, 0]}
-            />
+            >
+              <LabelList
+                dataKey="net_value"
+                position="insideLeft"
+                formatter={(value) => {
+                  const crore = Number(value) / 10000000;
+                  const percent =
+                    totalNetValue !== 0
+                      ? (Number(value) / totalNetValue) * 100
+                      : 0;
+
+                  return `₹${crore.toFixed(2)} Cr (${percent.toFixed(1)}%)`;
+                }}
+              />
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </CardContent>
