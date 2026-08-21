@@ -16,6 +16,7 @@ import MTFDashboardPage from "./pages/MTFDashboardPage";
 import MTFConcentrationPage from "./pages/MTFConcentrationPage";
 import EnterpriseRMSPage from "./pages/EnterpriseRMSPage";
 import EnterpriseRMSHistoryPage from "./pages/EnterpriseRMSHistoryPage";
+import AboutPage from "./pages/AboutPage";
 
 export default function App() {
   return (
@@ -67,6 +68,11 @@ export default function App() {
           <Route
             path="/enterprise-rms"
             element={<EnterpriseRMSPage />}
+          />
+          {/* About Page */}
+          <Route
+            path="/about"
+            element={<AboutPage />}
           />
         </Route>
       </Route>

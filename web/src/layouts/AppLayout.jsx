@@ -7,6 +7,8 @@ import {
   Brightness4,
   Brightness7,
   Dashboard,
+  History,
+  InfoOutlined,
   Logout,
   Menu as MenuIcon,
   Search,
@@ -96,12 +98,17 @@ const navigation = [
   {
   label: "Historical Risk Analytics",
   path: "/enterprise-rms/history",
-  icon: <Assessment />,
+  icon: <History />,
   },
   {
     label: "Enterprise RMS",
     path: "/enterprise-rms",
     icon: <AdminPanelSettings />,
+  },
+  {
+  label: "About",
+  path: "/about",
+  icon: <InfoOutlined />,
   },
 ];
 
@@ -135,9 +142,7 @@ export default function AppLayout() {
           <ListItemButton
             component={Link}
             key={item.path}
-            selected={location.pathname.startsWith(
-              item.path,
-            )}
+            selected={location.pathname === item.path}
             to={item.path}
             onClick={() => setMobileOpen(false)}
           >
