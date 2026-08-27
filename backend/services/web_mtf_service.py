@@ -1,43 +1,17 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
-from io import BytesIO
 from threading import Lock
 
 import numpy as np
 import pandas as pd
 from fastapi import UploadFile
 
+from core.services.mtf_import_service import MTFImportService
 from core.services.stock_master_service import StockMasterService
 
+
 class WebMTFService:
-    """MTF upload, validation and dashboard calculations."""
-
-    REQUIRED_COLUMNS = {
-        "ACCOUNTID",
-        "SYMBOL",
-        "NETVALUE",
-        "MARKTOMARKET",
-        "BUY VALUE",
-        "MTF VAR",
-        "MTF MARGIN",
-    }
-
-    COLUMN_ALIASES = {
-        "ACCOUNT ID": "ACCOUNTID",
-        "ACCOUNTID": "ACCOUNTID",
-        "ACCOUNT_ID": "ACCOUNTID",
-        "NET VALUE": "NETVALUE",
-        "NETVALUE": "NETVALUE",
-        "MARK TO MARKET": "MARKTOMARKET",
-        "MARKTOMARKET": "MARKTOMARKET",
-        "MTM": "MARKTOMARKET",
-        "BUYVALUE": "BUY VALUE",
-        "BUY VALUE": "BUY VALUE",
-        "MTFVAR": "MTF VAR",
-        "MTF VAR": "MTF VAR",
-        "MTFMARGIN": "MTF MARGIN",
-        "MTF MARGIN": "MTF MARGIN",
-    }
+    """MTF Web dashboard calculations and dataset management."""
 
     _datasets: dict[int, pd.DataFrame] = {}
     _lock = Lock()
@@ -115,33 +89,144 @@ class WebMTFService:
         return result
 
     @classmethod
-    async def upload(
+    async def prepare_upload(
         cls,
-        user_id: int,
         file: UploadFile,
-    ) -> dict:
-        dataframe = await cls._read_upload(file)
-        normalized = cls._normalize(dataframe)
-        normalized = cls._enrich_cap_category(normalized)
+    ) -> pd.DataFrame:
+        """
+        Prepare an uploaded MTF file using the canonical
+        MTFImportService.
 
-        with cls._lock:
-            cls._datasets[user_id] = normalized
+        The canonical importer owns:
+        - file parsing
+        - column normalization
+        - validation
+        - numeric conversion
+        - identifier cleaning
+        - MTM blank handling
 
-        return cls.dashboard(user_id)
+        WebMTFService only adapts the canonical dataframe
+        to the column names expected by the existing Web
+        dashboard calculations.
+        """
+
+        content = await file.read()
+
+        if not content:
+            raise ValueError("The uploaded MTF file is empty.")
+
+        import_result = MTFImportService.load_bytes(
+            content=content,
+            filename=file.filename or "mtf-upload.xlsx",
+        )
+
+        dataframe = import_result.dataframe.copy()
+
+        # -----------------------------------------------------
+        # Adapt canonical MTF columns to existing Web dashboard
+        # calculation names.
+        #
+        # IMPORTANT:
+        # MTFImportService remains the single source of truth
+        # for MTF file validation and normalization.
+        # -----------------------------------------------------
+
+        dataframe = dataframe.rename(
+            columns={
+                "AccountId": "ACCOUNTID",
+                "Symbol": "SYMBOL",
+                "NetValue": "NETVALUE",
+                "NetQty": "NETQTY",
+                "MarkToMarket": "MARKTOMARKET",
+            }
+        )
+
+        return cls._enrich_cap_category(dataframe) 
 
     @classmethod
     def dashboard(cls, user_id: int) -> dict:
-        dataframe = cls._get_dataset(user_id)
+        import time
 
-        summary = cls._summary(dataframe)
-        margin_distribution = cls._margin_distribution(dataframe)
-        cap_net_value_distribution = cls._cap_net_value_distribution(dataframe)
-        symbol_exposure = cls._symbol_exposure(dataframe)
-        top_margin_clients = cls._top_margin_clients(dataframe)
-        top_margin_symbols = cls._top_margin_symbols(dataframe)
-        top_mtm_gainers = cls._top_mtm(dataframe, ascending=False)
-        top_mtm_losers = cls._top_mtm(dataframe, ascending=True)
-        client_risk = cls._client_risk(dataframe)
+        total_start = time.perf_counter()
+
+        dataframe = cls._get_dataset(user_id)
+        t_dataset = time.perf_counter()
+
+        client_group = cls._client_group(dataframe)
+        t_client_group = time.perf_counter()
+
+        summary = cls._summary(
+            dataframe,
+            client_group,
+        )
+        t_summary = time.perf_counter()
+
+        margin_distribution = cls._margin_distribution(
+            dataframe,
+            client_group,
+        )
+        t_margin_distribution = time.perf_counter()
+
+        cap_net_value_distribution = cls._cap_net_value_distribution(
+            dataframe
+        )
+        t_cap = time.perf_counter()
+
+        symbol_exposure = cls._symbol_exposure(
+            dataframe
+        )
+        t_symbol = time.perf_counter()
+
+        top_margin_clients = cls._top_margin_clients(
+            dataframe,
+            client_group,
+        )
+        t_top_margin_clients = time.perf_counter()
+
+        top_margin_symbols = cls._top_margin_symbols(
+            dataframe
+        )
+        t_top_margin_symbols = time.perf_counter()
+
+        top_mtm_gainers = cls._top_mtm(
+            dataframe,
+            ascending=False,
+        )
+        t_top_mtm_gainers = time.perf_counter()
+
+        top_mtm_losers = cls._top_mtm(
+            dataframe,
+            ascending=True,
+        )
+        t_top_mtm_losers = time.perf_counter()
+
+        client_risk = cls._client_risk(
+            dataframe,
+            client_group,
+        )
+        t_client_risk = time.perf_counter()
+
+        print(
+            "\n"
+            + "=" * 70
+            + "\n"
+            + "MTF DASHBOARD PERFORMANCE PROFILE\n"
+            + "=" * 70
+            + f"\n_get_dataset              : {(t_dataset - total_start) * 1000:8.2f} ms"
+            + f"\n_client_group             : {(t_client_group - t_dataset) * 1000:8.2f} ms"
+            + f"\n_summary                  : {(t_summary - t_client_group) * 1000:8.2f} ms"
+            + f"\n_margin_distribution      : {(t_margin_distribution - t_summary) * 1000:8.2f} ms"
+            + f"\n_cap_net_value_distribution: {(t_cap - t_margin_distribution) * 1000:8.2f} ms"
+            + f"\n_symbol_exposure          : {(t_symbol - t_cap) * 1000:8.2f} ms"
+            + f"\n_top_margin_clients       : {(t_top_margin_clients - t_symbol) * 1000:8.2f} ms"
+            + f"\n_top_margin_symbols       : {(t_top_margin_symbols - t_top_margin_clients) * 1000:8.2f} ms"
+            + f"\n_top_mtm_gainers          : {(t_top_mtm_gainers - t_top_margin_symbols) * 1000:8.2f} ms"
+            + f"\n_top_mtm_losers           : {(t_top_mtm_losers - t_top_mtm_gainers) * 1000:8.2f} ms"
+            + f"\n_client_risk              : {(t_client_risk - t_top_mtm_losers) * 1000:8.2f} ms"
+            + f"\nTOTAL                     : {(t_client_risk - total_start) * 1000:8.2f} ms"
+            + "\n"
+            + "=" * 70
+        )
 
         return {
             "summary": summary,
@@ -157,7 +242,13 @@ class WebMTFService:
 
     @classmethod
     def client_risk(cls, user_id: int) -> list[dict]:
-        return cls._client_risk(cls._get_dataset(user_id))
+        dataframe = cls._get_dataset(user_id)
+        client_group = cls._client_group(dataframe)
+
+        return cls._client_risk(
+            dataframe,
+            client_group,
+        )
 
     @classmethod
     def symbol_exposure(cls, user_id: int) -> list[dict]:
@@ -176,125 +267,21 @@ class WebMTFService:
             result = dataframe.copy()
 
         # Backward compatibility:
-        # Older saved MTF datasets do not contain CAP_CATEGORY.
-        # Enrich them from the Stock Master cache when required.
-        if "CAP_CATEGORY" not in result.columns:
+        # Older saved MTF datasets may not contain SCRIP_CATEGORY.
+        # Enrich them from the Stock Master cache only when required.
+        if "SCRIP_CATEGORY" not in result.columns:
             result = cls._enrich_cap_category(result)
 
-        return result
+        return result    
 
     @classmethod
-    async def _read_upload(
-        cls,
-        file: UploadFile,
-    ) -> pd.DataFrame:
-        filename = (file.filename or "").lower()
-        content = await file.read()
-
-        if not content:
-            raise ValueError("The uploaded MTF file is empty.")
-
-        stream = BytesIO(content)
-
-        try:
-            if filename.endswith(".csv"):
-                return pd.read_csv(stream)
-
-            if filename.endswith((".xlsx", ".xls")):
-                return pd.read_excel(stream)
-
-        except Exception as error:
-            raise ValueError(
-                f"Unable to read the MTF file: {error}"
-            ) from error
-
-        raise ValueError(
-            "Unsupported file type. Upload .xlsx, .xls or .csv."
-        )
-
-    @classmethod
-    def _normalize(
-        cls,
-        dataframe: pd.DataFrame,
-    ) -> pd.DataFrame:
-        if dataframe is None or dataframe.empty:
-            raise ValueError("The MTF file contains no rows.")
-
-        normalized = dataframe.copy()
-        normalized.columns = [
-            cls._canonical_column(column)
-            for column in normalized.columns
-        ]
-
-        missing = cls.REQUIRED_COLUMNS - set(normalized.columns)
-
-        if missing:
-            raise ValueError(
-                "Missing required columns: "
-                + ", ".join(sorted(missing))
-            )
-
-        normalized["ACCOUNTID"] = (
-            normalized["ACCOUNTID"]
-            .astype(str)
-            .str.strip()
-        )
-        normalized["SYMBOL"] = (
-            normalized["SYMBOL"]
-            .astype(str)
-            .str.strip()
-            .str.upper()
-        )
-
-        numeric_columns = [
-            "NETVALUE",
-            "MARKTOMARKET",
-            "BUY VALUE",
-            "MTF VAR",
-            "MTF MARGIN",
-        ]
-
-        for column in numeric_columns:
-            normalized[column] = pd.to_numeric(
-                normalized[column],
-                errors="coerce",
-            ).fillna(0.0)
-
-        normalized = normalized[
-            (normalized["ACCOUNTID"] != "")
-            & (normalized["SYMBOL"] != "")
-        ].copy()
-
-        if normalized.empty:
-            raise ValueError(
-                "No valid AccountId and Symbol rows were found."
-            )
-
-        normalized = normalized.replace(
-            [np.inf, -np.inf],
-            0.0,
-        )
-
-        return normalized
-
-    @classmethod
-    def _canonical_column(cls, column) -> str:
-        cleaned = " ".join(
-            str(column).strip().upper().split()
-        )
-
-        return cls.COLUMN_ALIASES.get(cleaned, cleaned)
-
-    @classmethod
-    def _summary(cls, dataframe: pd.DataFrame) -> dict:
+    def _summary(cls, dataframe: pd.DataFrame, client_group: pd.DataFrame,) -> dict:
         total_clients = int(dataframe["ACCOUNTID"].nunique())
         total_symbols = int(dataframe["SYMBOL"].nunique())
         total_buy_value = float(dataframe["BUY VALUE"].sum())
         total_net_value = float(dataframe["NETVALUE"].sum())
         total_mtm = float(dataframe["MARKTOMARKET"].sum())
         total_margin = float(dataframe["MTF MARGIN"].sum())
-
-        client_group = cls._client_group(dataframe)
 
         positive_clients = int(
             (client_group["mtm"] > 0).sum()
@@ -336,8 +323,9 @@ class WebMTFService:
     def _margin_distribution(
         cls,
         dataframe: pd.DataFrame,
+        client_group: pd.DataFrame,
     ) -> list[dict]:
-        clients = cls._client_group(dataframe)
+        clients = client_group.copy()
 
         bins = [-np.inf, 15, 25, 40, 60, np.inf]
         labels = [
@@ -384,16 +372,14 @@ class WebMTFService:
     def _cap_net_value_distribution(
         dataframe: pd.DataFrame,
     ) -> list[dict]:
-        grouped = (
-            dataframe.groupby(
-                "SCRIP_CATEGORY",
-                as_index=False,
-            )
-            .agg(
-                net_value=("NETVALUE", "sum"),
-                symbols=("SYMBOL", "nunique"),
-            )
-        )
+        """
+        Return MTF margin split by market-cap category.
+
+        The existing API field name
+        ``cap_net_value_distribution`` is retained for
+        backward compatibility, but the chart value is now
+        MTF MARGIN instead of NETVALUE.
+        """
 
         category_order = [
             "Large Cap",
@@ -402,6 +388,38 @@ class WebMTFService:
             "Unclassified",
         ]
 
+        working = dataframe.copy()
+
+        # Make sure the category column exists.
+        if "SCRIP_CATEGORY" not in working.columns:
+            working["SCRIP_CATEGORY"] = "Unclassified"
+
+        working["SCRIP_CATEGORY"] = (
+            working["SCRIP_CATEGORY"]
+            .fillna("Unclassified")
+            .astype(str)
+            .str.strip()
+        )
+
+        # Normalize unexpected / blank categories.
+        working.loc[
+            working["SCRIP_CATEGORY"].eq(""),
+            "SCRIP_CATEGORY",
+        ] = "Unclassified"
+
+        grouped = (
+            working.groupby(
+                "SCRIP_CATEGORY",
+                as_index=False,
+            )
+            .agg(
+                mtf_margin=("MTF MARGIN", "sum"),
+                net_value=("NETVALUE", "sum"),
+                symbols=("SYMBOL", "nunique"),
+            )
+        )
+
+        # Keep the expected market-cap ordering.
         grouped["sort_order"] = (
             grouped["SCRIP_CATEGORY"]
             .map(
@@ -415,18 +433,26 @@ class WebMTFService:
             .fillna(len(category_order))
         )
 
-        grouped = grouped.sort_values("sort_order")
+        grouped = grouped.sort_values(
+            "sort_order"
+        )
 
         return [
             {
                 "cap_category": str(
                     row["SCRIP_CATEGORY"]
                 ),
-                "net_value": round(
-                    float(row["net_value"]),
+                "mtf_margin": round(
+                    float(row["mtf_margin"] or 0),
                     2,
                 ),
-                "symbols": int(row["symbols"]),
+                "net_value": round(
+                    float(row["net_value"] or 0),
+                    2,
+                ),
+                "symbols": int(
+                    row["symbols"] or 0
+                ),
             }
             for _, row in grouped.iterrows()
         ]
@@ -478,9 +504,10 @@ class WebMTFService:
     def _top_margin_clients(
         cls,
         dataframe: pd.DataFrame,
+        client_group: pd.DataFrame,
         limit: int = 10,
     ) -> list[dict]:
-        grouped = cls._client_group(dataframe).sort_values(
+        grouped = client_group.sort_values(
             "margin",
             ascending=False,
         ).head(limit)
@@ -589,8 +616,9 @@ class WebMTFService:
     def _client_risk(
         cls,
         dataframe: pd.DataFrame,
+        client_group: pd.DataFrame,
     ) -> list[dict]:
-        clients = cls._client_group(dataframe)
+        clients = client_group
 
         rows = []
 

@@ -8,42 +8,18 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
 import MTFClientRiskTable from "../components/MTFClientRiskTable";
 import MTFDataTables from "../components/MTFDataTables";
 import MTFMarginDistributionChart from "../components/MTFMarginDistributionChart";
 import MTFSummaryCards from "../components/MTFSummaryCards";
-import MTFCapNetValueChart from "../components/MTFCapNetValueChart";
-import MTFUploadCard from "../components/MTFUploadCard";
+import MTFSymbolExposureChart from "../components/MTFSymbolExposureChart";
 import api from "../services/api";
 
 export default function MTFDashboardPage() {
-  const [dashboardData, setDashboardData] =
-    useState(null);
-
-  const upload = useMutation({
-    mutationFn: async (file) => {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      return (
-        await api.post(
-          "/api/mtf/upload",
-          formData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
-          },
-        )
-      ).data;
-    },
-    onSuccess: (data) => {
-      setDashboardData(data);
-    },
-  });
+  const [dashboardData, setDashboardData] = useState(null);
 
   const dashboard = useQuery({
     queryKey: ["mtf-dashboard"],
@@ -53,8 +29,8 @@ export default function MTFDashboardPage() {
       (await api.get("/api/mtf/dashboard")).data,
   });
 
-    useEffect(() => {
-      if (dashboard.data) {
+  useEffect(() => {
+    if (dashboard.data) {
       setDashboardData(dashboard.data);
     }
   }, [dashboard.data]);
@@ -81,6 +57,7 @@ export default function MTFDashboardPage() {
 
   return (
     <Stack spacing={3}>
+      {/* Page Header */}
       <Stack
         direction={{ xs: "column", sm: "row" }}
         justifyContent="space-between"
@@ -91,6 +68,7 @@ export default function MTFDashboardPage() {
           <Typography variant="h4" fontWeight={800}>
             MTF Dashboard
           </Typography>
+
           <Typography color="text.secondary">
             Margin trading facility exposure and risk analysis.
           </Typography>
@@ -108,34 +86,25 @@ export default function MTFDashboardPage() {
         )}
       </Stack>
 
-      <MTFUploadCard
-        onUpload={(file) => upload.mutate(file)}
-        uploading={upload.isPending}
-        error={
-          upload.error?.response?.data?.detail ||
-          upload.error?.message ||
-          (upload.isError
-            ? "Unable to upload MTF file."
-            : "")
-        }
-      />
-
-      {(upload.isPending ||
-        dashboard.isFetching) && (
-        <Stack alignItems="center" py={5}>
+      {/* Dashboard Loading */}
+      {dashboard.isFetching && !dashboardData && (
+        <Stack alignItems="center" py={8}>
           <CircularProgress />
         </Stack>
       )}
 
+      {/* Dashboard Error */}
       {dashboard.isError && (
         <Alert severity="error">
-          {dashboard.error.response?.data?.detail ||
+          {dashboard.error?.response?.data?.detail ||
             "Unable to refresh MTF dashboard."}
         </Alert>
       )}
 
+      {/* Dashboard Data */}
       {dashboardData && (
         <>
+          {/* Overall Risk */}
           <Alert
             severity={riskSeverity(
               dashboardData.summary.risk_level,
@@ -145,10 +114,12 @@ export default function MTFDashboardPage() {
             {dashboardData.summary.risk_level}
           </Alert>
 
+          {/* Summary Cards */}
           <MTFSummaryCards
             summary={dashboardData.summary}
           />
 
+          {/* Charts */}
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, lg: 6 }}>
               <MTFMarginDistributionChart
@@ -159,12 +130,15 @@ export default function MTFDashboardPage() {
             </Grid>
 
             <Grid size={{ xs: 12, lg: 6 }}>
-              <MTFCapNetValueChart
-                data={dashboardData.cap_net_value_distribution}
+              <MTFSymbolExposureChart
+                data={
+                  dashboardData.cap_net_value_distribution
+                }
               />
             </Grid>
           </Grid>
 
+          {/* Data Tables */}
           <MTFDataTables
             topMarginClients={
               dashboardData.top_margin_clients
@@ -180,6 +154,7 @@ export default function MTFDashboardPage() {
             }
           />
 
+          {/* Client Risk */}
           <MTFClientRiskTable
             rows={dashboardData.client_risk}
           />

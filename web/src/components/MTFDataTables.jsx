@@ -12,22 +12,44 @@ import {
 } from "@mui/material";
 
 const money = (value) =>
-  `₹${Number(value || 0).toLocaleString("en-IN", {
-    maximumFractionDigits: 2,
-  })}`;
+  `₹${Number(value || 0).toLocaleString(
+    "en-IN",
+    {
+      maximumFractionDigits: 2,
+    },
+  )}`;
+
+const mtmColor = (value) => {
+  const number = Number(value || 0);
+
+  if (number > 0) {
+    return "success.main";
+  }
+
+  if (number < 0) {
+    return "error.main";
+  }
+
+  return "text.primary";
+};
 
 function StandardTable({
   title,
   columns,
-  rows,
+  rows = [],
   rowKey,
 }) {
   return (
     <Card sx={{ height: "100%" }}>
       <CardContent>
-        <Typography variant="h6" fontWeight={700} mb={2}>
+        <Typography
+          variant="h6"
+          fontWeight={700}
+          mb={2}
+        >
           {title}
         </Typography>
+
         <TableContainer>
           <Table size="small">
             <TableHead>
@@ -35,13 +57,16 @@ function StandardTable({
                 {columns.map((column) => (
                   <TableCell
                     key={column.key}
-                    align={column.align || "left"}
+                    align={
+                      column.align || "left"
+                    }
                   >
                     {column.label}
                   </TableCell>
                 ))}
               </TableRow>
             </TableHead>
+
             <TableBody>
               {rows.map((row, index) => (
                 <TableRow
@@ -54,8 +79,14 @@ function StandardTable({
                   {columns.map((column) => (
                     <TableCell
                       key={column.key}
-                      align={column.align || "left"}
-                      sx={column.sx?.(row)}
+                      align={
+                        column.align || "left"
+                      }
+                      sx={
+                        column.sx
+                          ? column.sx(row)
+                          : undefined
+                      }
                     >
                       {column.render
                         ? column.render(row)
@@ -83,26 +114,46 @@ function StandardTable({
   );
 }
 
+/* =========================================================
+   TOP MARGIN CLIENTS
+   ========================================================= */
+
 const clientColumns = [
-  { key: "account_id", label: "Account" },
+  {
+    key: "account_id",
+    label: "Account",
+  },
+
   {
     key: "margin",
     label: "Margin",
     align: "right",
-    render: (row) => money(row.margin),
+    render: (row) =>
+      money(row.margin),
   },
+
   {
     key: "buy_value",
     label: "Buy Value",
     align: "right",
-    render: (row) => money(row.buy_value),
+    render: (row) =>
+      money(row.buy_value),
   },
+
   {
     key: "mtm",
     label: "MTM",
     align: "right",
-    render: (row) => money(row.mtm),
+
+    render: (row) =>
+      money(row.mtm),
+
+    sx: (row) => ({
+      color: mtmColor(row.mtm),
+      fontWeight: 700,
+    }),
   },
+
   {
     key: "symbols",
     label: "Symbols",
@@ -110,26 +161,46 @@ const clientColumns = [
   },
 ];
 
+/* =========================================================
+   TOP MARGIN SYMBOLS
+   ========================================================= */
+
 const symbolColumns = [
-  { key: "symbol", label: "Symbol" },
+  {
+    key: "symbol",
+    label: "Symbol",
+  },
+
   {
     key: "margin",
     label: "Margin",
     align: "right",
-    render: (row) => money(row.margin),
+    render: (row) =>
+      money(row.margin),
   },
+
   {
     key: "buy_value",
     label: "Buy Value",
     align: "right",
-    render: (row) => money(row.buy_value),
+    render: (row) =>
+      money(row.buy_value),
   },
+
   {
     key: "mtm",
     label: "MTM",
     align: "right",
-    render: (row) => money(row.mtm),
+
+    render: (row) =>
+      money(row.mtm),
+
+    sx: (row) => ({
+      color: mtmColor(row.mtm),
+      fontWeight: 700,
+    }),
   },
+
   {
     key: "clients",
     label: "Clients",
@@ -137,44 +208,66 @@ const symbolColumns = [
   },
 ];
 
+/* =========================================================
+   TOP MTM GAINERS / LOSERS
+   ========================================================= */
+
 const mtmColumns = [
-  { key: "account_id", label: "Account" },
-  { key: "symbol", label: "Symbol" },
+  {
+    key: "account_id",
+    label: "Account",
+  },
+
+  {
+    key: "symbol",
+    label: "Symbol",
+  },
+
   {
     key: "mtm",
     label: "MTM",
     align: "right",
-    render: (row) => money(row.mtm),
+
+    render: (row) =>
+      money(row.mtm),
+
     sx: (row) => ({
-      color:
-        row.mtm >= 0
-          ? "success.main"
-          : "error.main",
+      color: mtmColor(row.mtm),
       fontWeight: 700,
     }),
   },
+
   {
     key: "buy_value",
     label: "Buy Value",
     align: "right",
-    render: (row) => money(row.buy_value),
+    render: (row) =>
+      money(row.buy_value),
   },
+
   {
     key: "margin",
     label: "Margin",
     align: "right",
-    render: (row) => money(row.margin),
+    render: (row) =>
+      money(row.margin),
   },
 ];
 
+/* =========================================================
+   COMPONENT
+   ========================================================= */
+
 export default function MTFDataTables({
-  topMarginClients,
-  topMarginSymbols,
-  topMtmGainers,
-  topMtmLosers,
+  topMarginClients = [],
+  topMarginSymbols = [],
+  topMtmGainers = [],
+  topMtmLosers = [],
 }) {
   return (
     <Grid container spacing={2}>
+
+      {/* TOP MARGIN CLIENTS */}
       <Grid size={{ xs: 12, lg: 6 }}>
         <StandardTable
           title="Top Margin Clients"
@@ -184,6 +277,7 @@ export default function MTFDataTables({
         />
       </Grid>
 
+      {/* TOP MARGIN SYMBOLS */}
       <Grid size={{ xs: 12, lg: 6 }}>
         <StandardTable
           title="Top Margin Symbols"
@@ -193,6 +287,7 @@ export default function MTFDataTables({
         />
       </Grid>
 
+      {/* TOP MTM GAINERS */}
       <Grid size={{ xs: 12, lg: 6 }}>
         <StandardTable
           title="Top MTM Gainers"
@@ -204,6 +299,7 @@ export default function MTFDataTables({
         />
       </Grid>
 
+      {/* TOP MTM LOSERS */}
       <Grid size={{ xs: 12, lg: 6 }}>
         <StandardTable
           title="Top MTM Losers"
@@ -214,6 +310,7 @@ export default function MTFDataTables({
           }
         />
       </Grid>
+
     </Grid>
   );
 }

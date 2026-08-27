@@ -34,40 +34,50 @@ class MTFService:
 
     @classmethod
     def load(cls, file_path: str | Path):
-        """Load MTF Excel / CSV."""
+        """
+        Load and normalize an MTF file through the canonical
+        MTFImportService pipeline.
 
-        file_path = Path(file_path)
+        This compatibility method is retained so existing
+        Desktop callers continue to work.
+        """
+        from core.services.mtf_import_service import MTFImportService
 
-        if not file_path.exists():
-            raise FileNotFoundError(file_path)
+        import_result = MTFImportService.load_file(file_path)
 
-        suffix = file_path.suffix.lower()
-
-        if suffix == ".csv":
-            dataframe = pd.read_csv(file_path)
-        elif suffix in (".xlsx", ".xls"):
-            dataframe = pd.read_excel(file_path)
-        else:
-            raise ValueError("Unsupported file format.")
-
-        dataframe.columns = dataframe.columns.str.strip()
-
-        cls.validate_dataframe(dataframe)
-
+        dataframe = import_result.dataframe
         summary = cls.calculate_summary(dataframe)
 
         return dataframe, summary
 
     @classmethod
     def validate_dataframe(cls, dataframe: pd.DataFrame) -> None:
-        """Validate required columns."""
+        """
+        Validate an already-normalized MTF dataframe.
+
+        File loading and normalization are handled by
+        MTFImportService.
+        """
+        if dataframe is None:
+            raise ValueError("MTF dataframe cannot be None.")
+
+        if not isinstance(dataframe, pd.DataFrame):
+            raise TypeError("MTF input must be a pandas DataFrame.")
+
+        if dataframe.empty:
+            raise ValueError("MTF dataframe cannot be empty.")
 
         missing = [
-            column for column in cls.REQUIRED_COLUMNS if column not in dataframe.columns
+            column
+            for column in cls.REQUIRED_COLUMNS
+            if column not in dataframe.columns
         ]
 
         if missing:
-            raise ValueError("Missing required columns:\n\n" + "\n".join(missing))
+            raise ValueError(
+                "Missing required MTF columns:\n\n"
+                + "\n".join(missing)
+            )
 
     @classmethod
     def calculate_summary(cls, dataframe: pd.DataFrame) -> dict:

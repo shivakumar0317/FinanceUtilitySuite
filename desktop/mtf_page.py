@@ -347,22 +347,20 @@ class MTFPage(BasePage):
             self.activity_log.success("Validating and cleaning portfolio...")
             self.progress.update_progress(0.40, "Validating file")
 
-            import_result = MasterImportService.import_file(file_path)
+            import_result = MasterImportService.import_mtf_file(file_path)
             dataframe = import_result.dataframe
 
             self.activity_log.success(
-                f"Snapshot created: {import_result.snapshot_id}"
+                f"MTF file loaded: {import_result.source_file}"
+            )
+
+            self.activity_log.success(
+                f"Records: {import_result.summary['records']:,} | "
+                f"Clients: {import_result.summary['clients']:,} | "
+                f"Symbols: {import_result.summary['symbols']:,}"
             )
 
             self.dataframe = dataframe
-            from core.state.application_state import ApplicationState
-
-            print("=" * 60)
-            print("AFTER IMPORT")
-            print("Has Portfolio :", ApplicationState.has_master_portfolio())
-            master = ApplicationState.get_master_portfolio()
-            print("Rows :", 0 if master is None else len(master))
-            print("=" * 60)
 
             self.filtered_dataframe = dataframe.copy()
             self._last_file_path = file_path
@@ -384,7 +382,9 @@ class MTFPage(BasePage):
             self.status_label.configure(
                 text=(
                     "MTF file imported successfully | "
-                    f"Snapshot: {import_result.snapshot_id}"
+                    f"Records: {import_result.summary['records']:,} | "
+                    f"Clients: {import_result.summary['clients']:,} | "
+                    f"Symbols: {import_result.summary['symbols']:,}"
                 )
             )
             self.search_entry.focus_set()

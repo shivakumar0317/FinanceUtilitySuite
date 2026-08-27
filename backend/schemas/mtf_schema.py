@@ -23,6 +23,7 @@ class MarginDistributionItem(BaseModel):
 
 class CapNetValueDistributionItem(BaseModel):
     cap_category: str
+    mtf_margin: float
     net_value: float
     symbols: int
 
@@ -84,3 +85,20 @@ class MTFDashboardResponse(BaseModel):
     top_mtm_gainers: list[TopMTMItem]
     top_mtm_losers: list[TopMTMItem]
     client_risk: list[ClientRiskItem]
+
+class MTFSnapshotInfo(BaseModel):
+    snapshot_id: str
+    business_date: str
+    filename: str
+    records: int
+    clients: int
+    symbols: int
+    total_exposure: float
+    total_mtm: float
+    risk_score: float
+    health: str
+
+
+class MTFUploadResponse(BaseModel):
+    dashboard: MTFDashboardResponse
+    snapshot: MTFSnapshotInfo    

@@ -30,8 +30,20 @@ class WebMTFConcentrationService:
                 "Missing required columns: " + ", ".join(missing)
             )
 
-        frame = dataframe.copy()
+        frame = dataframe[
+            [
+                "ACCOUNTID",
+                "SYMBOL",
+                "NETVALUE",
+                "BUY VALUE",
+                "MARKTOMARKET",
+                "MTF VAR",
+                "MTF MARGIN",
+            ]
+        ].copy()
 
+        # Canonical MTFImportService already provides cleaned
+        # identifiers and numeric financial columns.
         frame["ACCOUNTID"] = (
             frame["ACCOUNTID"]
             .fillna("")
@@ -47,146 +59,148 @@ class WebMTFConcentrationService:
             .str.upper()
         )
 
-        numeric_columns = [
-            "NETVALUE",
-            "BUY VALUE",
-            "MARKTOMARKET",
-            "MTF VAR",
-            "MTF MARGIN",
-        ]
-
-        for column in numeric_columns:
-            frame[column] = pd.to_numeric(
-                frame[column],
-                errors="coerce",
-            ).fillna(0.0)
-
         frame = frame[
-            (frame["ACCOUNTID"] != "")
-            & (frame["SYMBOL"] != "")
+            frame["ACCOUNTID"].ne("")
+            & frame["SYMBOL"].ne("")
         ].copy()
 
         if frame.empty:
             return cls._empty_summary()
 
-        rows: list[dict] = []
+        # ---------------------------------------------------------
+        # Aggregate once at Account + Symbol level.
+        #
+        # Previous implementation:
+        #   Account group
+        #       -> Symbol group for every account
+        #
+        # New implementation:
+        #   One vectorized Account + Symbol groupby.
+        # ---------------------------------------------------------
 
-        for account_id, client_df in frame.groupby(
-            "ACCOUNTID",
-            sort=False,
-        ):
-            symbol_summary = (
-                client_df.groupby(
+        symbol_summary = (
+            frame.groupby(
+                ["ACCOUNTID", "SYMBOL"],
+                as_index=False,
+                sort=False,
+            )
+            .agg(
+                BUY_VALUE=("BUY VALUE", "sum"),
+                NETVALUE=("NETVALUE", "sum"),
+                MARKTOMARKET=("MARKTOMARKET", "sum"),
+                MTF_VAR=("MTF VAR", "sum"),
+                MTF_MARGIN=("MTF MARGIN", "sum"),
+            )
+        )
+
+        symbol_summary["EXPOSURE"] = (
+            symbol_summary["NETVALUE"].abs()
+        )
+
+        # ---------------------------------------------------------
+        # Aggregate the Account + Symbol result to Account level.
+        # ---------------------------------------------------------
+
+        client_summary = (
+            symbol_summary.groupby(
+                "ACCOUNTID",
+                as_index=False,
+                sort=False,
+            )
+            .agg(
+                Holdings=("SYMBOL", "nunique"),
+                Total_Exposure=("EXPOSURE", "sum"),
+                BUY_VALUE=("BUY_VALUE", "sum"),
+                NetValue=("NETVALUE", "sum"),
+                MarkToMarket=("MARKTOMARKET", "sum"),
+                MTF_VAR=("MTF_VAR", "sum"),
+                MTF_MARGIN=("MTF_MARGIN", "sum"),
+            )
+        )
+
+        # ---------------------------------------------------------
+        # Find the largest stock/exposure for every client.
+        # ---------------------------------------------------------
+
+        largest_indices = (
+            symbol_summary.groupby(
+                "ACCOUNTID",
+                sort=False,
+            )["EXPOSURE"]
+            .idxmax()
+        )
+
+        largest = (
+            symbol_summary.loc[
+                largest_indices,
+                [
+                    "ACCOUNTID",
                     "SYMBOL",
-                    as_index=False,
-                )
-                .agg(
-                    BUY_VALUE=("BUY VALUE", "sum"),
-                    NETVALUE=("NETVALUE", "sum"),
-                    MARKTOMARKET=("MARKTOMARKET", "sum"),
-                    MTF_VAR=("MTF VAR", "sum"),
-                    MTF_MARGIN=("MTF MARGIN", "sum"),
-                )
-            )
-
-            symbol_summary["EXPOSURE"] = (
-                symbol_summary["NETVALUE"].abs()
-            )
-
-            holdings = int(
-                symbol_summary["SYMBOL"].nunique()
-            )
-
-            total_buy_value = float(
-                symbol_summary["BUY_VALUE"].sum()
-            )
-
-            total_net_value = float(
-                symbol_summary["NETVALUE"].sum()
-            )
-
-            total_mtm = float(
-                symbol_summary["MARKTOMARKET"].sum()
-            )
-
-            total_var = float(
-                symbol_summary["MTF_VAR"].sum()
-            )
-
-            total_margin = float(
-                symbol_summary["MTF_MARGIN"].sum()
-            )
-
-            total_exposure = float(
-                symbol_summary["EXPOSURE"].sum()
-            )
-
-            largest_stock = ""
-            largest_exposure = 0.0
-
-            if not symbol_summary.empty:
-                largest_row = symbol_summary.loc[
-                    symbol_summary["EXPOSURE"].idxmax()
-                ]
-
-                largest_stock = str(
-                    largest_row["SYMBOL"]
-                )
-
-                largest_exposure = float(
-                    largest_row["EXPOSURE"]
-                )
-
-            largest_holding_percent = (
-                largest_exposure / total_exposure * 100
-                if total_exposure > 0
-                else 0.0
-            )
-
-            risk_level = cls._risk_level(holdings)
-
-            rows.append(
-                {
-                    "AccountId": str(account_id),
-                    "Holdings": holdings,
-                    "Largest Stock": largest_stock,
-                    "Largest Exposure": round(
-                        largest_exposure,
-                        2,
-                    ),
-                    "Largest Holding %": round(
-                        largest_holding_percent,
-                        2,
-                    ),
-                    "Total Exposure": round(
-                        total_exposure,
-                        2,
-                    ),
-                    "BUY VALUE": round(
-                        total_buy_value,
-                        2,
-                    ),
-                    "NetValue": round(
-                        total_net_value,
-                        2,
-                    ),
-                    "MarkToMarket": round(
-                        total_mtm,
-                        2,
-                    ),
-                    "MTF VAR": round(
-                        total_var,
-                        2,
-                    ),
-                    "MTF MARGIN": round(
-                        total_margin,
-                        2,
-                    ),
-                    "Risk Level": risk_level,
+                    "EXPOSURE",
+                ],
+            ]
+            .rename(
+                columns={
+                    "SYMBOL": "Largest Stock",
+                    "EXPOSURE": "Largest Exposure",
                 }
             )
+            .reset_index(drop=True)
+        )
 
-        result = pd.DataFrame(rows)
+        result = client_summary.merge(
+            largest,
+            on="ACCOUNTID",
+            how="left",
+        )
+
+        result["Largest Holding %"] = (
+            result["Largest Exposure"]
+            / result["Total_Exposure"]
+            .replace(0, pd.NA)
+            * 100
+        ).fillna(0.0)
+
+        result["Risk Level"] = result["Holdings"].map(
+            cls._risk_level
+        )
+
+        result = result.rename(
+            columns={
+                "ACCOUNTID": "AccountId",
+                "Total_Exposure": "Total Exposure",
+            }
+        )
+
+        # Keep the existing API field names and rounding behavior.
+        result["AccountId"] = result["AccountId"].astype(str)
+        result["Largest Stock"] = (
+            result["Largest Stock"]
+            .fillna("")
+            .astype(str)
+        )
+
+        numeric_columns = [
+            "Largest Exposure",
+            "Largest Holding %",
+            "Total Exposure",
+            "BUY_VALUE",
+            "NetValue",
+            "MarkToMarket",
+            "MTF_VAR",
+            "MTF_MARGIN",
+        ]
+
+        for column in numeric_columns:
+            result[column] = result[column].astype(float).round(2)
+
+        result = result.rename(
+            columns={
+                "BUY_VALUE": "BUY VALUE",
+                "MTF_VAR": "MTF VAR",
+                "MTF_MARGIN": "MTF MARGIN",
+            }
+        )
 
         return cls._sort_summary(result)
 

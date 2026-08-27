@@ -21,7 +21,7 @@ from core.services.data_cleaner import DataCleaner
 from core.services.snapshot_service import SnapshotService
 from core.services.validation_service import ValidationService
 from core.state.application_state import ApplicationState
-
+from core.services.mtf_import_service import MTFImportService
 
 @dataclass(slots=True)
 class ImportResult:
@@ -80,6 +80,65 @@ class MasterImportService:
 
         return ImportResult(
             dataframe=cleaned_dataframe.copy(),
+            summary=summary,
+            source_file=str(path),
+            snapshot_id=snapshot.snapshot_id,
+        )
+
+    @classmethod
+    def import_mtf_file(
+        cls,
+        file_path: str | Path,
+    ) -> ImportResult:
+        """
+        Import an MTF file through the canonical MTF pipeline.
+
+        This method keeps the existing MasterImportService API intact
+        while allowing Desktop RMS workflows to use MTFImportService
+        for normalization and validation.
+        """
+
+        path = Path(file_path)
+
+        if not path.exists():
+            raise FileNotFoundError(
+                f"MTF file not found: {path}"
+            )
+
+        result = MTFImportService.load_file(path)
+
+        dataframe = result.dataframe.copy()
+
+        ApplicationState.set_master_portfolio(
+            dataframe,
+            source_file=str(path),
+        )
+
+        snapshot = SnapshotService().create_snapshot(
+            dataframe,
+            source_file=str(path),
+        )
+
+        summary = {
+            "records": result.records_after_cleaning,
+            "clients": result.clients,
+            "symbols": result.symbols,
+            "total_exposure": cls._sum(
+                dataframe,
+                "NetValue",
+            ),
+            "total_mtm": cls._sum(
+                dataframe,
+                "MarkToMarket",
+            ),
+            "total_buy_value": cls._sum(
+                dataframe,
+                "BUY VALUE",
+            ),
+        }
+
+        return ImportResult(
+            dataframe=dataframe,
             summary=summary,
             source_file=str(path),
             snapshot_id=snapshot.snapshot_id,

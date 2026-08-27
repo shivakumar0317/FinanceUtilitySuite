@@ -23,6 +23,8 @@ services:
       dockerfile: Dockerfile.backend
     container_name: finance_backend
     restart: unless-stopped
+    volumes:
+      - ./data:/app/data
     depends_on:
       postgres:
         condition: service_healthy

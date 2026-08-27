@@ -16,6 +16,7 @@ import customtkinter as ctk
 import pandas as pd
 
 from core.concentration_service import ConcentrationService
+from core.state.application_state import ApplicationState
 from desktop.base_page import BasePage
 from desktop.client_holdings_window import ClientHoldingsWindow
 from desktop.theme import Theme
@@ -146,8 +147,8 @@ class ConcentrationRiskPage(BasePage):
     def _build_progress(self) -> None:
         self.import_button = ctk.CTkButton(
             self.header,
-            text="Import MTF File",
-            command=self.import_file,
+            text="Load MTF Data",
+            command=self.load_mtf_data,
             width=160,
         )
         self.import_button.grid(row=0, column=2, padx=(10, 0))
@@ -237,18 +238,13 @@ class ConcentrationRiskPage(BasePage):
         root.bind("<Control-E>", self._on_export_shortcut)
         root.bind("<Escape>", self._on_escape_shortcut)
 
-    def import_file(self) -> None:
-        file_path = filedialog.askopenfilename(
-            title="Select MTF File",
-            filetypes=[
-                ("Excel Files", "*.xlsx *.xls"),
-                ("CSV Files", "*.csv"),
-                ("All Files", "*.*"),
-            ],
-        )
+    def load_mtf_data(self) -> None:
+        """
+        Load the canonical MTF dataset from ApplicationState.
 
-        if not file_path:
-            return
+        The MTF file is imported once through the MTF Dashboard.
+        Concentration Risk consumes the same cleaned dataframe.
+        """
 
         try:
             self._set_busy_state(True)
@@ -256,47 +252,113 @@ class ConcentrationRiskPage(BasePage):
             self.progress.reset()
             self.activity_log.clear()
 
-            self.status_label.configure(text="Importing MTF concentration data...")
-            self.activity_log.success("Loading MTF file...")
-            self.progress.update_progress(0.15, "Loading file")
+            self.status_label.configure(
+                text="Loading shared MTF dataset..."
+            )
+            self.activity_log.success(
+                "Loading canonical MTF dataset..."
+            )
+            self.progress.update_progress(
+                0.20,
+                "Loading MTF data",
+            )
 
-            dataframe = self._read_file(file_path)
+            dataframe = ApplicationState.get_master_portfolio()
 
-            self.activity_log.success("Validating concentration columns...")
-            self.progress.update_progress(0.35, "Validating file")
+            if dataframe is None or dataframe.empty:
+                raise ValueError(
+                    "No MTF dataset is currently loaded.\n\n"
+                    "Please import an MTF file from the "
+                    "MTF Dashboard first."
+                )
+
+            dataframe = dataframe.copy()
+
+            self.activity_log.success(
+                f"Loaded {len(dataframe):,} MTF records."
+            )
+
+            self.progress.update_progress(
+                0.40,
+                "Validating concentration data",
+            )
+
             self.service.load_dataframe(dataframe)
 
-            self.activity_log.success("Calculating client concentration...")
-            self.progress.update_progress(0.60, "Calculating concentration")
+            self.activity_log.success(
+                "Calculating client concentration..."
+            )
+
+            self.progress.update_progress(
+                0.65,
+                "Calculating concentration",
+            )
+
             summary = self.service.calculate_concentration()
 
             self.source_dataframe = dataframe
             self.summary_dataframe = summary
             self.filtered_dataframe = summary.copy()
-            self._last_file_path = file_path
+
+            self._last_file_path = None
             self.search_var.set("")
 
-            self.activity_log.success("Updating dashboard...")
-            self.progress.update_progress(0.80, "Updating dashboard")
+            self.progress.update_progress(
+                0.80,
+                "Updating dashboard",
+            )
+
             self._refresh_all(summary)
 
-            self.progress.update_progress(0.95, "Loading table")
+            self.progress.update_progress(
+                0.95,
+                "Loading table",
+            )
+
             self._refresh_result_table(summary)
 
             self._last_refresh_time = datetime.now()
+
             self.progress.complete("Ready")
-            self.activity_log.success("Concentration analysis completed")
+
+            self.activity_log.success(
+                "Shared MTF concentration analysis completed."
+            )
+
             self._update_table_title(summary)
             self._update_footer_status(summary)
-            self.status_label.configure(text="MTF concentration analysis completed successfully")
+
+            self.status_label.configure(
+                text=(
+                    "Concentration Risk loaded from "
+                    "shared MTF dataset"
+                )
+            )
+
             self.search_entry.focus_set()
-            self.after(900, self._hide_progress)
+
+            self.after(
+                900,
+                self._hide_progress,
+            )
 
         except Exception as error:
-            self.status_label.configure(text="Concentration import failed")
-            self.progress.update_progress(0, "Import failed")
+            self.status_label.configure(
+                text="Unable to load MTF data"
+            )
+
+            self.progress.update_progress(
+                0,
+                "Load failed",
+            )
+
             self.activity_log.error(str(error))
-            messagebox.showerror("Concentration Import Error", str(error))
+
+            messagebox.showerror(
+                "MTF Data Error",
+                str(error),
+            )
+
         finally:
             self._set_busy_state(False)
 
@@ -653,17 +715,6 @@ class ConcentrationRiskPage(BasePage):
                 "Client Holdings",
                 str(error),
             )
-
-    @staticmethod
-    def _read_file(file_path: str) -> pd.DataFrame:
-        suffix = Path(file_path).suffix.lower()
-
-        if suffix in {".xlsx", ".xls"}:
-            return pd.read_excel(file_path)
-        if suffix == ".csv":
-            return pd.read_csv(file_path)
-
-        raise ValueError("Unsupported file format. Please select an Excel or CSV file.")
 
     def _load_mini_table(
         self,

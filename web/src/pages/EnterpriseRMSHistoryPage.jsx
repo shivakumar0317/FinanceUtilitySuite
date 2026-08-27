@@ -1,5 +1,5 @@
-﻿import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+﻿import { useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
   Box,
@@ -26,6 +26,8 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
 import GroupsIcon from "@mui/icons-material/Groups";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
 import api from "../services/api";
 
@@ -233,6 +235,13 @@ function RiskInsightCard({
 }
 
 export default function EnterpriseRMSHistoryPage() {
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef(null);
+
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [uploadSuccess, setUploadSuccess] = useState("");
+
   const {
     data: snapshots = [],
     isLoading,
@@ -245,6 +254,62 @@ export default function EnterpriseRMSHistoryPage() {
       return response.data;
     },
   });
+
+  // ---------------------------------------------------------
+  // MTF Upload
+  // ---------------------------------------------------------
+
+  async function handleMtfUpload(event) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    setUploadError("");
+    setUploadSuccess("");
+    setUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await api.post(
+        "/api/mtf/upload",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        },
+      );
+
+      const snapshot = response.data?.snapshot;
+
+      await queryClient.invalidateQueries({
+        queryKey: ["enterprise-rms-snapshots"],
+      });
+
+      setUploadSuccess(
+        snapshot?.snapshot_id
+          ? `MTF uploaded successfully. Snapshot ${snapshot.snapshot_id} created.`
+          : "MTF uploaded successfully and historical analytics updated.",
+      );
+    } catch (uploadException) {
+      setUploadError(
+        uploadException?.response?.data?.detail ||
+          uploadException?.response?.data?.error?.message ||
+          uploadException?.message ||
+          "Unable to upload the MTF file.",
+      );
+    } finally {
+      setUploading(false);
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  }
 
   const [selectedFirst, setSelectedFirst] = useState(null);
   const [selectedSecond, setSelectedSecond] = useState(null);
@@ -452,6 +517,82 @@ export default function EnterpriseRMSHistoryPage() {
         Review historical Enterprise RMS snapshots and compare
         portfolio risk across business dates.
       </Typography>
+
+            <Paper
+        sx={{
+          p: 3,
+          mb: 3,
+          borderRadius: 3,
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 2,
+            flexWrap: "wrap",
+          }}
+        >
+          <Box>
+            <Typography variant="h6" fontWeight={800}>
+              MTF Risk Data
+            </Typography>
+
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ mt: 0.5 }}
+            >
+              Upload the latest MTF file to update the MTF Dashboard,
+              Concentration Risk and Historical Risk Analytics.
+            </Typography>
+          </Box>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            hidden
+            onChange={handleMtfUpload}
+          />
+
+          <Button
+            variant="contained"
+            startIcon={<CloudUploadIcon />}
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+          >
+            {uploading ? "Uploading..." : "Upload MTF File"}
+          </Button>
+        </Box>
+
+        {uploading && (
+          <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
+            <CircularProgress size={20} sx={{ mr: 1.5 }} />
+
+            <Typography variant="body2" color="text.secondary">
+              Uploading MTF data and creating RMS snapshot...
+            </Typography>
+          </Box>
+        )}
+
+        {uploadSuccess && (
+          <Alert
+            severity="success"
+            icon={<CheckCircleIcon />}
+            sx={{ mt: 2 }}
+          >
+            {uploadSuccess}
+          </Alert>
+        )}
+
+        {uploadError && (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {uploadError}
+          </Alert>
+        )}
+      </Paper>
 
       <Paper
         sx={{
